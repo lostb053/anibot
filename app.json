@@ -1,0 +1,68 @@
+{
+    "name":"Ani-Info",
+    "description":"telegram anime info provider bot",
+    "keywords":[
+        "Pyrogram",
+        "Telegram",
+        "Bot",
+        "Anime"
+    ],
+    "repository":"https://github.com/lostb053/anibot",
+    "website":"https://github.com/lostb053/anibot",
+    "success_url":"https://t.me/lostb053",
+    "env":{
+        "API_ID":{
+            "description":"Get this value from https://my.telegram.org"
+        },
+        "API_HASH":{
+            "description":"Get this value from https://my.telegram.org"
+        },
+        "DATABASE_URL":{
+            "description":"Mongodb url from https://cloud.mongodb.com/, guide: https://del.dog/mongodb_guide"
+        },
+        "LOG_CHANNEL_ID":{
+            "description":"[ Private Telegram Log Channel ID ], Note: Also add your Bot to LOG CHANNEL !"
+        },
+        "BOT_TOKEN":{
+            "description":"Get this from https://t.me/botfather and enable Inline Mode"
+        },
+        "BOT_NAME":{
+            "description":"Your bot name with @, like @Hanabi_Yasuraoka_bot, Note: enter exact bot name with exact letters that are in capital"
+        },
+        "OWNER_ID":{
+            "description":"Your user_id e.g 123456789, for multiple ids just add a space between them"
+        },
+        "ANILIST_CLIENT": {
+            "description":"Get from https://anilist.co/settings/developer"
+        },
+        "ANILIST_SECRET": {
+            "description":"Get from https://anilist.co/settings/developer"
+        },
+        "ANILIST_REDIRECT_URL": {
+            "description":"If you don't wish to change auth method, just leave it that way",
+            "required":false
+        },
+        "TRIGGERS":{
+            "description":"Custom triggers, for multiple, just put a space between like '/ ?'. / and ! are defaults",
+            "required":false
+        },
+        "SAUCE_API":{
+            "description":"Get it from https://saucenao.com if you wanna include reverse search with SauceNAO feature",
+            "required":false
+        }
+    },
+    "buildpacks":[
+        {
+            "url":"https://github.com/jonathanong/heroku-buildpack-ffmpeg-latest.git"
+        },
+        {
+            "url":"heroku/python"
+        }
+    ],
+    "formation":{
+        "worker":{
+            "quantity":1,
+            "size":"free"
+        }
+    }
+}
