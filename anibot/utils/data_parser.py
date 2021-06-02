@@ -441,7 +441,7 @@ async def get_us_act(id_, user):
             if i['status']=="PLANNING":
                 msg += f"⚬ Planning to watch {name}\n"
     btn = [[InlineKeyboardButton("Back", callback_data=f"getusrbc_{user}")]]
-    return f"https://img.anili.st/user/{id_}", msg, InlineKeyboardMarkup(btn)
+    return f"https://img.anili.st/user/{id_}?a={time.time()}", msg, InlineKeyboardMarkup(btn)
 
 
 async def get_us_fav(id_, user):
@@ -452,7 +452,7 @@ async def get_us_fav(id_, user):
     for i in data:
         msg += f"⚬ {i['node']['title']['romaji']}\n"
     btn = [[InlineKeyboardButton("Back", callback_data=f"getusrbc_{user}")]]
-    return f"https://img.anili.st/user/{id_}", msg, InlineKeyboardMarkup(btn)
+    return f"https://img.anili.st/user/{id_}?a=({time.time()})", msg, InlineKeyboardMarkup(btn)
 
 
 async def get_ls(idm, req, auth: bool = False, user: int = None):
