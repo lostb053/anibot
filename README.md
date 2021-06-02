@@ -1,10 +1,10 @@
-Telegram Bot Repo Capable of fetching the following Info via Anilist API
+Telegram Bot Repo Capable of fetching the following Info via Anilist API inspired from [AniFluid](https://t.me/anifluidbot) and [Nepgear](https://t.me/nepgearbot)
 * Anime
 * Airing
 * Manga
 * Character
 * Scheduled
-* Anilist Activity (non-existent)
+* Anilist Activity
 
 Anime Reverse Search Powered by tracemoepy
 Reverse Search Powered by SauceNAO                                                           (WIP)
@@ -21,10 +21,12 @@ Watch Order from [Chiaki](https://chiaki.site/) using [web api](https://chiaki.v
  /character - Fetches info on multiple possible characters related to query
  /manga - Fetches info on multiple possible mangas related to query
  /airing - Fetches info on airing data for anime
+ /flex or /me - Fetches anilist info of an authorised user
+ /user - Fetches anilist info as per query
  /scheduled - Fetches scheduled animes
  /auth - Fetches info on how to authorize anilist account
  /code - Generates access token from the authorization code from authorization website
- /myactivity - Fetches your anilist activity when authorised with your acc.
+ /logout - removes authorization
  /reverse - Reverse search powered by tracemoepy
  /sauce - Reverse Search Powered by SauceNAO                                                 (WIP)
  /watch - Fetches watch order for anime series
@@ -35,7 +37,7 @@ Watch Order from [Chiaki](https://chiaki.site/) using [web api](https://chiaki.v
 ```
  /eval - Runs python code (code must start right after cmd like "/eval print('UwU')")
  /term - Runs the code in terminal
- /stats - Gibs data on bot such as no. of grps/users and ping                                (non-existent)
+ /stats - Gibs data on bot such as no. of grps/users and ping
 ```
 
 
@@ -51,7 +53,8 @@ Watch Order from [Chiaki](https://chiaki.site/) using [web api](https://chiaki.v
 ## Goals
 * plugins to be added / make it working
  ```
- stats
+ top - to retrieve top animes for a genre
+ trend - to retrieve trends
  ```
 
 
