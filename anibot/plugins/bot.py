@@ -62,7 +62,7 @@ Apart from above shown cmds"""
             await client.send_message(
                 message.chat.id,
                 text="Click below button for bot help",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Help", url=f"https://t.me/{bot_us}/start?=help")]])
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Help", url=f"https://t.me/{bot_us}/?start=help")]])
             )
 
 

@@ -27,13 +27,13 @@ async def trace_bek(client: Client, message: Message):
             caption = (
                 f"**Title**: {result['title_english']} (`{result['title_native']}`)\n"
                 f"\n**Anilist ID:** `{result['anilist_id']}`"
-                f"\n**Similarity**: `{str(result['similarity'])[:5]*100}`"
+                f"\n**Similarity**: `{(str(result['similarity']*100))[:5]}`"
                 f"\n**Episode**: `{result['episode']}`"
             )
             preview = await tracemoe.natural_preview(search)
         with open("preview.mp4", "wb") as f:
             f.write(preview)
-            session.close()
+            await session.close()
         await message.reply_video("preview.mp4", caption=caption)
         os.remove("preview.mp4")
     await x.delete()

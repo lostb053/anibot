@@ -13,7 +13,7 @@ async def get_schuled(client, message: Message):
     user = message.from_user.id
     msg = await get_scheduled()
     buttons = get_btns("SCHEDULED", result=[msg[1]], user=user)
-    await x.edit_text(msg[0], reply_markup=InlineKeyboardMarkup(buttons))
+    await x.edit_text(msg[0], reply_markup=buttons)
 
 
 @Client.on_callback_query(filters.regex(pattern=r"sched_(.*)"))
@@ -22,7 +22,7 @@ async def ns_(client, cq: CallbackQuery):
     kek, day, user = cq.data.split("_")
     msg = await get_scheduled(int(day))
     buttons = get_btns("SCHEDULED", result=[int(day)], user=user)
-    await cq.edit_message_text(msg[0], reply_markup=InlineKeyboardMarkup(buttons))
+    await cq.edit_message_text(msg[0], reply_markup=buttons)
 
 
 HELP_DICT["schedule"] = """Use /schedule cmd to get scheduled animes based on weekdays

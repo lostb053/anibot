@@ -428,16 +428,16 @@ async def get_us_act(id_, user):
         name = f"[{i['media']['title']['romaji']}]({i['media']['siteUrl']})"
         if i['media']['type']=="MANGA":
             if i['status'] in ["COMPLETED", "DROPPED", "PAUSED", "REPEATING"]:
-                msg += f"⚬ {i['status'].capitalize()} reading \n"
+                msg += f"⚬ {i['status'].capitalize()} {name}\n"
             if i['status']=="CURRENT":
                 msg += f"⚬ Read chapter {i['progress']} of {name}\n"
             if i['status']=="PLANNING":
                 msg += f"⚬ Planning to read {name}\n"
         if i['media']['type']=="ANIME":
             if i['status'] in ["COMPLETED", "DROPPED", "PAUSED", "REPEATING"]:
-                msg += f"⚬ {i['status'].capitalize()} watching {name}\n"
+                msg += f"⚬ {i['status'].capitalize()} {name}\n"
             if i['status']=="CURRENT":
-                msg += f"⚬ Watch episode {i['progress']} of {name}\n"
+                msg += f"⚬ Watched episode {i['progress']} of {name}\n"
             if i['status']=="PLANNING":
                 msg += f"⚬ Planning to watch {name}\n"
     btn = [[InlineKeyboardButton("Back", callback_data=f"getusrbc_{user}")]]
@@ -869,7 +869,12 @@ async def tog_fav_(id_: int, media: str, user: int):
 
 async def get_usr(vars_, req, user):
     query = USER_QRY if "user" in req else VIEWER_QRY
-    k = await return_json_senpai(query=query, vars=vars_, auth=True if "flex" in req else False, user=int(user))
+    k = await return_json_senpai(query=query, vars=vars_, auth=False if "user" in req else True, user=int(user))
+    error = k.get("errors")
+    if error:
+        error_sts = error[0].get("message")
+        return [f"{error_sts}"]
+
     data = k['data']['User' if "user" in req else 'Viewer']
     anime = data['statistics']['anime']
     manga = data['statistics']['manga']
@@ -920,10 +925,10 @@ async def ls_au_status(id, req, user, eid: int = None, status: str = None):
 #### Jikanpy part ####
 
 async def get_scheduled(x: int = 9):
-    day = day_(x if x!=9 else datetime.now().weekday())
+    day = str(day_(x if x!=9 else datetime.now().weekday())).lower()
     out = f"Scheduled animes for {day}\n\n"
     async with AioJikan() as session:
-        sched_ls = (await session.schedule(day=str(day.lower()))).get(str(day.lower()))
+        sched_ls = (await session.schedule(day=day)).get(day)
         for i in sched_ls:
             out += f"• {i['title']}\n"
     return out, x if x!=9 else datetime.now().weekday()

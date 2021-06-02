@@ -128,9 +128,13 @@ async def flex_(client, message: Message):
         else:
             get_user = {"search": query[1]}
     user = message.from_user.id
-    if "flex" in query[0] and not (await AUTH_USERS.find_one({"id": user})):
+    if not "user" in query[0] and not (await AUTH_USERS.find_one({"id": user})):
         return await message.reply_text("Please connect your account first to use this cmd")
     result = await get_usr(get_user, query[0], user)
+    if len(result) == 1:
+        k = await message.reply_text(result[0])
+        await asyncio.sleep(5)
+        return await k.delete()
     pic, msg, buttons = result
     await message.reply_photo(pic, caption=msg, reply_markup=buttons)
 
@@ -475,7 +479,7 @@ keywords (anime name) or Anilist ID
 (Don't confuse with anilist)
 
 This cmd includes buttons for prequel and sequel related to anime searched (if any),
-while anilist gives can scroll between animes with similar names
+while anilist can scroll between animes with similar names
 
 **Usage:**
         `/anime Fumetsu No Anata E`
@@ -485,23 +489,23 @@ while anilist gives can scroll between animes with similar names
 HELP_DICT["anilist"] = """Use /anilist cmd to get info on all animes related to search query
 (Don't confuse with anime)
 
-This cmd helps you choose between multiple possible animes related to your query,
-while anime includes buttons for prequel and sequel related to anime searched (if any)
+This cmd helps you choose between animes with similar names,
+while anime gives info on single anime
 
 **Usage:**
         `/anilist rezero`
         `!anilist hello world`"""
 
-HELP_DICT["character"] = """Use /character cmd to get info on all possible characters related to your query
+HELP_DICT["character"] = """Use /character cmd to get info on characters
 
 **Usage:**
         `/character Hanabi`
         `!character tachibana`"""
 
-HELP_DICT["manga"] = """Use /manga cmd to get info on all possible mangas related to your query
+HELP_DICT["manga"] = """Use /manga cmd to get info on mangas
 
 **Usage:**
-        `/manga The Teacher Can Not Tell Me Love`
+        `/manga Karakai Jouzu no Takagi San`
         `!manga Ao Haru Ride`"""
 
 HELP_DICT["airing"] = """Use /airing cmd to get info on airing status of anime
@@ -511,11 +515,6 @@ HELP_DICT["airing"] = """Use /airing cmd to get info on airing status of anime
         `!airing Seijo no Maryoku wa Bannou desu`"""
 
 HELP_DICT["auth"] = "Use /auth or !auth cmd to authorize your Anilist account with bot"
-
-HELP_DICT["code"] = """Use /code or !code cmd to comlplete authorizations
-**Usage:**
-        `/code` __auth code from website__
-        `!code` __auth code from website__"""
 
 HELP_DICT["flex"] = "Use /flex or !flex cmd to get your anilist stats\nCan also use /me or !me"
 
