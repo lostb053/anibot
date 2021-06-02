@@ -116,7 +116,7 @@ async def ianime(client, message: Message):
     await message.reply_photo(pic, caption=msg, reply_markup=buttons)
 
 
-@Client.on_message(filters.command(["flex", f"flex{BOT_NAME}", "me", f"me{BOT_NAME}","user", f"user{BOT_NAME}"], prefixes=trg))
+@Client.on_message(filters.command(["flex", f"flex{BOT_NAME}", "me", f"me{BOT_NAME}", "user", f"user{BOT_NAME}"], prefixes=trg))
 async def flex_(client, message: Message):
     query = message.text.split(" ", 1)
     get_user = None
@@ -517,7 +517,7 @@ HELP_DICT["code"] = """Use /code or !code cmd to comlplete authorizations
         `/code` __auth code from website__
         `!code` __auth code from website__"""
 
-HELP_DICT["flex"] = "Use /flex or !flex cmd to get your anilist stats"
+HELP_DICT["flex"] = "Use /flex or !flex cmd to get your anilist stats\nCan also use /me or !me"
 
 HELP_DICT["logout"] = "Use /logout or !logout cmd to revoke authorization"
 

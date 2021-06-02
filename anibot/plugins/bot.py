@@ -5,7 +5,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from .. import BOT_NAME, TRIGGERS as trg, OWNER, HELP_DICT
 from ..utils.db import get_collection
-from ..utils.helper import clog, check_user
+from ..utils.helper import AUTH_USERS, clog, check_user
 
 USERS = get_collection("USERS")
 GROUPS = get_collection("GROUPS")
@@ -19,14 +19,18 @@ async def start_(client: Client, message: Message):
         if not (user.id in OWNER) and not (await USERS.find_one({"id": user.id})):
             await asyncio.gather(USERS.insert_one({"id": user.id, "user": user.first_name}))
             await clog("ANIBOT", f"New User started bot\n\n[{user.first_name}](tg://user?id={user.id})\nID: `{user.id}`", "NEW_USER")
+        if len(message.text.split(" "))==2:
+            if message.text.split(" ")[1]=="help":
+                await help_(client, message)
+                return
         await client.send_message(
             message.chat.id,
             text=f"""Kon'nichiwa!!!
-I'm {bot.first_name} bot and i help you get info related to Animes, Mangas, Characters, Airing, Schedule, Watch Order, etc...
+I'm {bot.first_name} bot and i can help you get info related to Animes, Mangas, Characters, Airing, Schedule, Watch Order, etc...
 For more info send /help cmd in pm
-If you wish to add me in a group start bot by /start{BOT_NAME} and if bot doesnt responds give it admin privilages
+If you wish to use me in a group start bot by /start{BOT_NAME} after adding it
 
-**Note:** Bot doesnt have functionality to mess with grps using bans/kicks and stuff"""
+**Note:** If bot doesnt responds properly in grps give it admin privilage"""
         )
     else:
         gid = message.chat
@@ -39,7 +43,7 @@ If you wish to add me in a group start bot by /start{BOT_NAME} and if bot doesnt
 @Client.on_message(filters.command(['help', f'help{BOT_NAME}'], prefixes=trg))
 async def help_(client: Client, message: Message):
     id_ = message.from_user.id
-    bot_id = (await client.get_me()).id
+    bot_us = (await client.get_me()).username
     buttons = help_btns(id_)
     if id_ in OWNER:
         await client.send_message(message.chat.id, text="Bot Help\nEach button represents available cmd", reply_markup=buttons)
@@ -48,11 +52,18 @@ async def help_(client: Client, message: Message):
             text="""Owners / Sudos can also use
 - __/term__ `to run a cmd in terminal`
 - __/eval__ `to run a python code (code must start right after cmd like `__/eval print('UwU')__`)`
+- __/stats__ `to getstats on bot like no. of users, grps and authorised users`
 Apart from above shown cmds"""
         )
     else:
         if message.chat.id==message.from_user.id:
             await client.send_message(message.chat.id, text="Bot Help\nEach button represents available cmd", reply_markup=buttons)
+        else:
+            await client.send_message(
+                message.chat.id,
+                text="Click below button for bot help",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Help", url=f"https://t.me/{bot_us}/start?=help")]])
+            )
 
 
 @Client.on_callback_query(filters.regex(pattern=r"help_(.*)"))
@@ -86,6 +97,26 @@ def help_btns(user):
     if len(but_rc)!=0:
         buttons.append(but_rc)
     return InlineKeyboardMarkup(buttons)
+
+
+@Client.on_message(filters.user(OWNER) & filters.command(['stats', f'stats{BOT_NAME}'], prefixes=trg))
+async def stats_(client: Client, message: Message):
+    st = dt.now()
+    x = await message.reply_text("Collecting Stats!!!")
+    et = dt.now()
+    pt = (et-st).microseconds / 1000
+    nosus = await USERS.estimated_document_count()
+    nosauus = await AUTH_USERS.estimated_document_count()
+    nosgrps = await GROUPS.estimated_document_count()
+    await x.edit_text(f"""
+Stats:-
+
+**User:** {nosus}
+**Authourised Users:** {nosauus}
+**Groups:** {nosgrps}
+**Ping:** `{pt} ms`
+"""
+    )
 
 
 @Client.on_message(filters.command(['ping', f'ping{BOT_NAME}'], prefixes=trg))
