@@ -69,23 +69,6 @@ query ($id: Int, $idMal:Int, $search: String) {
 }
 """
 
-ACTIVITY_QUERY = """
-query ($id: Int) {
-  Page (perPage: 10) {
-    mediaList (userId: $id, sort: UPDATED_TIME_DESC) {
-      progress 
-      status
-      media {
-        title {
-          romaji
-        }
-        type
-        siteUrl
-      }
-    }
-  }
-}"""
-
 FAV_QUERY = """
 query ($id: Int) {
   User (id: $id) {
@@ -418,28 +401,38 @@ query ($id: Int) {
 }
 """
 
+ACTIVITY_QUERY = """
+query ($id: Int) {
+  Page (perPage: 12) {
+  	activities (userId: $id, type: MEDIA_LIST, sort: ID_DESC) {
+			...kek
+  	}
+  }
+}
+fragment kek on ListActivity {
+  type
+  media {
+    title {
+      romaji
+    }
+    siteUrl
+  }
+  progress
+  status
+}
+"""
 
 async def get_us_act(id_, user):
     vars_ = {"id": id_}
     result = await return_json_senpai(ACTIVITY_QUERY, vars_, auth=True, user=user)
-    data = result["data"]["Page"]["mediaList"]
+    data = result["data"]["Page"]["activities"]
     msg = ""
     for i in data:
         name = f"[{i['media']['title']['romaji']}]({i['media']['siteUrl']})"
-        if i['media']['type']=="MANGA":
-            if i['status'] in ["COMPLETED", "DROPPED", "PAUSED", "REPEATING"]:
-                msg += f"⚬ {i['status'].capitalize()} {name}\n"
-            if i['status']=="CURRENT":
-                msg += f"⚬ Read chapter {i['progress']} of {name}\n"
-            if i['status']=="PLANNING":
-                msg += f"⚬ Planning to read {name}\n"
-        if i['media']['type']=="ANIME":
-            if i['status'] in ["COMPLETED", "DROPPED", "PAUSED", "REPEATING"]:
-                msg += f"⚬ {i['status'].capitalize()} {name}\n"
-            if i['status']=="CURRENT":
-                msg += f"⚬ Watched episode {i['progress']} of {name}\n"
-            if i['status']=="PLANNING":
-                msg += f"⚬ Planning to watch {name}\n"
+        if i['status'] in ["watched episode", "read chapter"]:
+            msg += f"⚬ {str(i['status']).capitalize()} {i['progress']} of {name}\n"
+        else:
+            msg += f"⚬ {str(i['status']).capitalize()} {name}\n"
     btn = [[InlineKeyboardButton("Back", callback_data=f"getusrbc_{user}")]]
     return f"https://img.anili.st/user/{id_}?a={time.time()}", msg, InlineKeyboardMarkup(btn)
 
@@ -789,7 +782,7 @@ async def get_manga(qdb, page, auth: bool = False, user: int = None):
             in_ls_id = in_list['id']
             in_ls_stts = in_list['status']
             in_ls_score = f" and scored {in_list['score']}" if in_list['score']!=0 else ""
-            user_data = f"➤ **USER DATA:** `{in_ls_stts}{fav}{in_ls_score}`\n\n"
+            user_data = f"➤ **USER DATA:** `{in_ls_stts}{fav}{in_ls_score}`\n"
     name = f"""[{c_flag}]**{romaji}**
         __{english}__
         {native}"""
@@ -805,7 +798,7 @@ async def get_manga(qdb, page, auth: bool = False, user: int = None):
     finals_ += f"➤ **FORMAT:** `{format_}`\n"
     finals_ += f"➤ **SOURCE:** `{source}`\n"
     finals_ += user_data
-    finals_ += f"Description: `{description}`\n\n"
+    finals_ += f"\nDescription: `{description}`\n\n"
     pic = f"https://img.anili.st/media/{idm}"
     return pic, [finals_, result["data"]["Page"]["pageInfo"]["total"], url], [idm, in_ls, in_ls_id, isfav]
 
@@ -894,7 +887,7 @@ Total Volumes Read: `{manga['volumesRead']}`
 Average Score: `{manga['meanScore']}`
 """ 
     btn = []
-    if "flex" in req:
+    if not "user" in req:
         btn.append([
             InlineKeyboardButton("Favourites", callback_data=f"myfavs_{data['id']}_{user}"),
             InlineKeyboardButton("Activity", callback_data=f"myacc_{data['id']}_{user}")

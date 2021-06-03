@@ -6,7 +6,9 @@ from .plugins.saucenao import session
 
 
 async def main():
-    await asyncio.gather(anibot.start())
+    async def _start_app(app):
+        await app.start()
+    await asyncio.gather(_start_app(anibot))
     await idle()
     await asyncio.gather(anibot.stop())
     _close_db()

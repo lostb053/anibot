@@ -26,11 +26,11 @@ async def start_(client: Client, message: Message):
         await client.send_message(
             message.chat.id,
             text=f"""Kon'nichiwa!!!
-I'm {bot.first_name} bot and i can help you get info related to Animes, Mangas, Characters, Airing, Schedule, Watch Order, etc...
-For more info send /help cmd in pm
-If you wish to use me in a group start bot by /start{BOT_NAME} after adding it
+I'm {bot.first_name} bot and I can help you get info on Animes, Mangas, Characters, Airings, Schedules, Watch Orders of Animes, etc
+For more info send /help in here.
+If you wish to use me in a group start me by /start{BOT_NAME} command after adding me in the group.
 
-**Note:** If bot doesnt responds properly in grps give it admin privilage"""
+**Note:** If bot doesn't responds properly in group, give it admin privilage"""
         )
     else:
         gid = message.chat
@@ -52,7 +52,7 @@ async def help_(client: Client, message: Message):
             text="""Owners / Sudos can also use
 - __/term__ `to run a cmd in terminal`
 - __/eval__ `to run a python code (code must start right after cmd like `__/eval print('UwU')__`)`
-- __/stats__ `to getstats on bot like no. of users, grps and authorised users`
+- __/stats__ `to get stats on bot like no. of users, grps and authorised users`
 Apart from above shown cmds"""
         )
     else:
@@ -112,7 +112,7 @@ async def stats_(client: Client, message: Message):
 Stats:-
 
 **User:** {nosus}
-**Authourised Users:** {nosauus}
+**Authorised Users:** {nosauus}
 **Groups:** {nosgrps}
 **Ping:** `{pt} ms`
 """
