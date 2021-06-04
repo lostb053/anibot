@@ -36,6 +36,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
  /auth - Fetches info on how to authorize anilist account
  /code - Generates access token from the authorization code from authorization website
  /logout - removes authorization
+ /sfw - To toggle nsfw lock in groups
  /reverse - Reverse search powered by tracemoepy
  /watch - Fetches watch order for anime series
  /feedback - contact bot owner or main support grp at @hanabi_support
