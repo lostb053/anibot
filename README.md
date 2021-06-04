@@ -8,7 +8,6 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * Anilist Activity
 * Update Anilist entry using bots
 * Anime Reverse Search Powered by [tracemoepy](https://github.com/dragsama/tracemoepy)
-* Reverse Search Powered by [SauceNAO](https://saucenao.com)                                       (WIP)
 * Watch Order from [Chiaki](https://chiaki.site/) using [web api](https://chiaki.vercel.app)
 <h3>Also can add to grps and enable sfw lock to prevent members from looking up hentai and 18+ rated stuff</h3>
 
@@ -38,7 +37,6 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
  /code - Generates access token from the authorization code from authorization website
  /logout - removes authorization
  /reverse - Reverse search powered by tracemoepy
- /sauce - Reverse Search Powered by SauceNAO                                                 (WIP)
  /watch - Fetches watch order for anime series
 ```
 
@@ -71,3 +69,6 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 
 For improvements PR or contact [@LostB053](https://t.me/lostb053)
 can ask for support too but don't expect much (since i myself am learning yet)
+
+
+<h4>Note: I dropped SauceNAO stuff cuz i couldnt represent it in some good looking manner<br>I would be grateful if anybody can help me parse results and organize them like <a href="https://t.me/reverseSearchBot">@reverseSearchBot</a></h4>
