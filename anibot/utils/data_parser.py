@@ -931,10 +931,10 @@ async def get_scheduled(x: int = 9):
 #### chiaki part ####
 
 def get_wols(x: str):
-    data = requests.get(f"https://chiaki.vercel.app/search?query={x}").json()
+    data = requests.get(f"https://chiaki.vercel.app/search2?query={x}").json()
     ls = []
     for i in data:
-        sls = [i['id'], i['value']]
+        sls = [data[i], i]
         ls.append(sls)
     return ls
 
