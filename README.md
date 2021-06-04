@@ -6,7 +6,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * Scheduled
 * Favourites
 * Anilist Activity
-* Update Anilist entry using bots
+* Update Anilist entry using bot
 * Anime Reverse Search Powered by [tracemoepy](https://github.com/dragsama/tracemoepy)
 * Watch Order from [Chiaki](https://chiaki.site/) using [web api](https://chiaki.vercel.app)
 <h3>Also can add to grps and enable sfw lock to prevent members from looking up hentai and 18+ rated stuff</h3>
@@ -38,6 +38,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
  /logout - removes authorization
  /reverse - Reverse search powered by tracemoepy
  /watch - Fetches watch order for anime series
+ /feedback - contact bot owner or main support grp at [@hanabi_support](https://t.me/hanabi_support)
 ```
 
 
