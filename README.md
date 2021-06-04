@@ -68,7 +68,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * [@blank_x](https://t.me/blank_x) on tg for [sukuinote](https://gitlab.com/blank-x/sukuinote)
 
 
-For improvements PR or contact [@LostB053](https://t.me/lostb053) or [@hanabi_support](https://t.me/hanabi_support)
+For improvements PR or contact [@LostB053](https://t.me/lostb053) or [@hanabi_support](https://t.me/hanabi_support)<br>
 can ask for support too but don't expect much (since i myself am learning yet)
 
 
