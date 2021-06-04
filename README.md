@@ -5,9 +5,10 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * Character
 * Scheduled
 * Anilist Activity
-* Anime Reverse Search Powered by [tracemoepy](https://github.com/dragsama/tracemoepy)
-* Reverse Search Powered by [SauceNAO](https://saucenao.com)                                        (WIP)
-* Watch Order from [Chiaki](https://chiaki.site/) using [web api](https://chiaki.vercel.app)
+
+Anime Reverse Search Powered by [tracemoepy](https://github.com/dragsama/tracemoepy)
+Reverse Search Powered by [SauceNAO](https://saucenao.com)                                                           (WIP)
+Watch Order from [Chiaki](https://chiaki.site/) using [web api](https://chiaki.vercel.app)
 
 
 ## Requirements
@@ -36,7 +37,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
  /code - Generates access token from the authorization code from authorization website
  /logout - removes authorization
  /reverse - Reverse search powered by tracemoepy
- /sauce - Reverse Search Powered by SauceNAO                                        (WIP)
+ /sauce - Reverse Search Powered by SauceNAO                                                 (WIP)
  /watch - Fetches watch order for anime series
 ```
 
@@ -67,5 +68,5 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * [@blank_x](https://t.me/blank_x) on tg for [sukuinote](https://gitlab.com/blank-x/sukuinote)
 
 
-For improvements PR or contact [@LostB053](https://t.me/lostb053)<br>
-Can ask for support too but don't expect much (since i myself am learning yet)
+For improvements PR or contact [@LostB053](https://t.me/lostb053)
+can ask for support too but don't expect much (since i myself am learning yet)

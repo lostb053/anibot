@@ -35,8 +35,6 @@ if SAUCE_API != "":
 
     @Client.on_message(filters.command(['sauce', f'sauce{BOT_NAME}'], prefixes=trg))
     async def saucenao(client: Client, message: Message):
-        if SAUCE_API == "":
-            return await message.reply_text("Bot owner haven't added SauceNAO API in env vars and thus this plugin is useless")
         reply = message.reply_to_message
         media = reply.photo or reply.animation or reply.video or reply.sticker or reply.document
         if not media:

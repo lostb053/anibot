@@ -6,19 +6,37 @@
 """ Search for Anime related Info using Anilist API """
 
 
-import asyncio, requests, os
-from re import A
+import asyncio, requests, time, random
 from pyrogram import filters, Client
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, Message
 from .. import ANILIST_CLIENT, ANILIST_REDIRECT_URL, ANILIST_SECRET, HELP_DICT, TRIGGERS as trg, BOT_NAME
-from ..utils.data_parser import get_us_act, get_us_fav, tog_fav_, get_ani, get_airing, get_anilist, get_char, get_info, get_manga, get_ls, ls_au_status, get_usr, ANIME_DB, MANGA_DB
-from ..utils.helper import check_user, get_btns, AUTH_USERS, rand_key
+from ..utils.data_parser import (
+    get_us_act, get_us_fav, tog_fav_, get_ani, get_airing, get_anilist, get_char,
+    get_info, get_manga, get_ls, ls_au_status, get_usr, ANIME_DB, MANGA_DB
+)
+from ..utils.helper import check_user, get_btns, AUTH_USERS, rand_key, clog
+from ..utils.db import get_collection
+
+GROUPS = get_collection("GROUPS")
+SFW_GRPS = get_collection("SFW_GROUPS")
+
+no_pic = [
+    'https://telegra.ph/file/0d2097f442e816ba3f946.jpg',
+    'https://telegra.ph/file/5a152016056308ef63226.jpg',
+    'https://telegra.ph/file/d2bf913b18688c59828e9.jpg',
+    'https://telegra.ph/file/d53083ea69e84e3b54735.jpg',
+    'https://telegra.ph/file/b5eb1e3606b7d2f1b491f.jpg'
+]
 
 
 @Client.on_message(filters.command(["anime", f"anime{BOT_NAME}"], prefixes=trg))
-async def anim_arch(client, message: Message):
+async def anim_arch(client: Client, message: Message):
     """Search Anime Info"""
     text = message.text.split(" ", 1)
+    gid = message.chat
+    if gid.type in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid.id})):
+        await asyncio.gather(GROUPS.insert_one({"id": gid.id, "grp": gid.title}))
+        await clog("ANIBOT", f"Bot added to a new group\n\n{gid.username or gid.title}\nID: `{gid.id}`", "NEW_GROUP")
     if len(text)==1:
         k = await message.reply_text("NameError: 'query' not defined")
         await asyncio.sleep(5)
@@ -39,13 +57,20 @@ async def anim_arch(client, message: Message):
         await asyncio.sleep(5)
         return await k.delete()
     buttons = get_btns("ANIME", result=result, user=user, auth=auth)
-    await message.reply_photo(title_img, caption=finals_, reply_markup=buttons)
+    if await (SFW_GRPS.find_one({"id": gid.id})) and result[2].pop()=="True":
+        await client.send_photo(message.chat.id, no_pic[random.randint(0, 4)], caption="This anime is marked 18+ and not allowed in this group")
+        return
+    await client.send_photo(message.chat.id, title_img, caption=finals_, reply_markup=buttons)
 
 
 @Client.on_message(filters.command(["manga", f"manga{BOT_NAME}"], prefixes=trg))
-async def manga_arch(client, message: Message):
+async def manga_arch(client: Client, message: Message):
     """Search Manga Info"""
     text = message.text.split(" ", 1)
+    gid = message.chat
+    if gid.type in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid.id})):
+        await asyncio.gather(GROUPS.insert_one({"id": gid.id, "grp": gid.title}))
+        await clog("ANIBOT", f"Bot added to a new group\n\n{gid.username or gid.title}\nID: `{gid.id}`", "NEW_GROUP")
     if len(text)==1:
         k = await message.reply_text("NameError: 'query' not defined")
         await asyncio.sleep(5)
@@ -64,11 +89,15 @@ async def manga_arch(client, message: Message):
         return await k.delete()
     pic, finals_ = result[0], result[1][0]
     buttons = get_btns("MANGA", lsqry=qdb, lspage=1, user=user, result=result, auth=auth)
-    await message.reply_photo(pic, caption=finals_, reply_markup=buttons)
+    if await (SFW_GRPS.find_one({"id": message.chat.id})) and result[2].pop()=="True":
+        buttons = get_btns("MANGA", lsqry=qdb, lspage=1, user=user, result=result, auth=auth, sfw="True")
+        await client.send_photo(message.chat.id, no_pic[random.randint(0, 4)], caption="This manga is marked 18+ and not allowed in this group", reply_markup=buttons)
+        return
+    await client.send_photo(message.chat.id, pic, caption=finals_, reply_markup=buttons)
 
 
 @Client.on_message(filters.command(["character", f"character{BOT_NAME}"], prefixes=trg))
-async def character_search(client, message: Message):
+async def character_search(client: Client, message: Message):
     """Get Info about a Character"""
     text = message.text.split(" ", 1)
     if len(text)==1:
@@ -89,11 +118,11 @@ async def character_search(client, message: Message):
     img = result[0]
     cap_text = result[1][0]
     buttons = get_btns("CHARACTER", user=user, lsqry=query, lspage=1, result=result, auth=auth)
-    await message.reply_photo(img, caption=cap_text, reply_markup=buttons)
+    await client.send_photo(message.chat.id, img, caption=cap_text, reply_markup=buttons)
 
 
 @Client.on_message(filters.command(["anilist", f"anilist{BOT_NAME}"], prefixes=trg))
-async def ianime(client, message: Message):
+async def ianime(client: Client, message: Message):
     text = message.text.split(" ", 1)
     if len(text)==1:
         k = await message.reply_text("NameError: 'query' not defined")
@@ -113,11 +142,15 @@ async def ianime(client, message: Message):
         return await k.delete()
     pic, msg = result[0], result[1][0]
     buttons = get_btns("ANIME", lsqry=qdb, lspage=1, result=result, user=user, auth=auth)
-    await message.reply_photo(pic, caption=msg, reply_markup=buttons)
+    if await (SFW_GRPS.find_one({"id": message.chat.id})) and result[2].pop()=="True":
+        buttons = get_btns("ANIME", lsqry=qdb, lspage=1, result=result, user=user, auth=auth, sfw="True")
+        await client.send_photo(message.chat.id, no_pic[random.randint(0, 4)], caption="This anime is marked 18+ and not allowed in this group", reply_markup=buttons)
+        return
+    await client.send_photo(message.chat.id, pic, caption=msg, reply_markup=buttons)
 
 
 @Client.on_message(filters.command(["flex", f"flex{BOT_NAME}", "me", f"me{BOT_NAME}", "user", f"user{BOT_NAME}"], prefixes=trg))
-async def flex_(client, message: Message):
+async def flex_(client: Client, message: Message):
     query = message.text.split(" ", 1)
     get_user = None
     if "user" in query[0]:
@@ -129,18 +162,22 @@ async def flex_(client, message: Message):
             get_user = {"search": query[1]}
     user = message.from_user.id
     if not "user" in query[0] and not (await AUTH_USERS.find_one({"id": user})):
-        return await message.reply_text("Please connect your account first to use this cmd")
+        bot_us = (await client.get_me()).username
+        return await message.reply_text(
+            "Please connect your account first to use this cmd",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Auth", url=f"https://t.me/{bot_us}/?start=auth")]])
+            )
     result = await get_usr(get_user, query[0], user)
     if len(result) == 1:
         k = await message.reply_text(result[0])
         await asyncio.sleep(5)
         return await k.delete()
     pic, msg, buttons = result
-    await message.reply_photo(pic, caption=msg, reply_markup=buttons)
+    await client.send_photo(message.chat.id, pic, caption=msg, reply_markup=buttons)
 
 
 @Client.on_message(filters.command(["airing", f"airing{BOT_NAME}"], prefixes=trg))
-async def airing_anim(client, message: Message):
+async def airing_anim(client: Client, message: Message):
     """Get Airing Detail of Anime"""
     text = message.text.split(" ", 1)
     if len(text)==1:
@@ -162,7 +199,10 @@ async def airing_anim(client, message: Message):
         return await k.delete()
     coverImg, out = result[0]
     btn = get_btns("AIRING", user=user, result=result, auth=auth)
-    await message.reply_photo(coverImg, caption=out, reply_markup=btn)
+    if await (SFW_GRPS.find_one({"id": message.chat.id})) and result[2].pop()=="True":
+        await client.send_photo(message.chat.id, no_pic[random.randint(0, 4)], caption="This anime is marked 18+ and not allowed in this group")
+        return
+    await client.send_photo(message.chat.id, coverImg, caption=out, reply_markup=btn)
 
 
 @Client.on_message(filters.private & filters.command("auth", prefixes=trg))
@@ -175,6 +215,20 @@ async def auth_link(client, message: Message):
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
             text="Authorize",
             url=f"https://anilist.co/api/v2/oauth/authorize?client_id={ANILIST_CLIENT}&redirect_uri={ANILIST_REDIRECT_URL}&response_type=code"
+        )]])
+    )
+
+
+@Client.on_message(~filters.private & filters.command(["sfw", f"sfw{BOT_NAME}"], prefixes=trg))
+async def sfw_(client, message: Message):
+    text = "NSFW allowed in this group"
+    if await (SFW_GRPS.find_one({"id": message.chat.id})):
+        text = "NSFW not allowed in this group"
+    await message.reply_text(
+        text = text,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
+            text="Toggle",
+            callback_data=f"nsfwtogl_{message.chat.id}"
         )]])
     )
 
@@ -243,6 +297,10 @@ async def present_ls(client, cq: CallbackQuery):
     )
     pic, msg = result[0], result[1][0]
     button = get_btns(media, lsqry=query, lspage=int(page), result=result, user=user, auth=authbool)
+    if await (SFW_GRPS.find_one({"id": cq.message.chat.id})) and media!="CHARACTER" and result[2].pop()=="True":
+        buttons = get_btns("ANIME", lsqry=query, lspage=1, result=result, user=user, auth=auth, sfw="True")
+        await cq.edit_message_media(InputMediaPhoto(no_pic[random.randint(0, 4)], caption="This material is marked 18+ and not allowed in this group"), reply_markup=buttons)
+        return
     await cq.edit_message_media(InputMediaPhoto(pic, caption=msg), reply_markup=button)
 
 
@@ -261,6 +319,20 @@ async def present_res(client, cq: CallbackQuery):
     await cq.edit_message_media(InputMediaPhoto(pic, caption=msg), reply_markup=btns)
 
 
+@Client.on_callback_query(filters.regex(pattern=r"nsfwtogl_(.*)"))
+async def nsfw_toggle(client, cq: CallbackQuery):
+    await cq.answer()
+    query = cq.data.split("_")[1]
+    if await (SFW_GRPS.find_one({"id": query})):
+        await asyncio.gather(SFW_GRPS.find_one_and_delete({"id": int(query)}))
+        text = "NSFW allowed in this group"
+    else:
+        await asyncio.gather(SFW_GRPS.insert_one({"id": int(query)}))
+        text = "NSFW not allowed in this group"
+    btns = InlineKeyboardMarkup([[InlineKeyboardButton(text="Toggle", callback_data=f"nsfwtogl_{query}")]])
+    await cq.edit_message_text(text, reply_markup=btns)
+
+
 @Client.on_callback_query(filters.regex(pattern=r"myacc_(.*)"))
 @check_user
 async def myacc_(client, cq: CallbackQuery):
@@ -276,10 +348,29 @@ async def myacc_(client, cq: CallbackQuery):
 @check_user
 async def myfavs_(client, cq: CallbackQuery):
     await cq.answer()
-    query = cq.data.split("_")[1]
-    user = cq.data.split("_").pop()
-    result = await get_us_fav(int(query), user=int(user))
-    pic, msg, btns = result
+    q = cq.data.split("_")
+    btn = [
+        [
+            InlineKeyboardButton("ANIME", callback_data=f"myfavqry_ANIME_{q[1]}_1_{q[2]}"),
+            InlineKeyboardButton("CHARACTER", callback_data=f"myfavqry_CHAR_{q[1]}_1_{q[2]}"),
+            InlineKeyboardButton("MANGA", callback_data=f"myfavqry_MANGA_{q[1]}_1_{q[2]}")
+        ],
+        [
+            InlineKeyboardButton("Back", callback_data=f"getusrbc_{q[2]}")
+        ]
+    ]
+    await cq.edit_message_media(
+        InputMediaPhoto(f"https://img.anili.st/user/{q[1]}?a={time.time()}", caption="Choose one of the below options"),
+        reply_markup=InlineKeyboardMarkup(btn)
+    )
+
+
+@Client.on_callback_query(filters.regex(pattern=r"myfavqry_(.*)"))
+@check_user
+async def myfavqry_(client, cq: CallbackQuery):
+    await cq.answer()
+    q = cq.data.split("_")
+    pic, msg, btns = await get_us_fav(q[2], int(q[4]), q[1], q[3])
     await cq.edit_message_media(InputMediaPhoto(pic, caption=msg), reply_markup=btns)
 
 
@@ -288,7 +379,7 @@ async def myfavs_(client, cq: CallbackQuery):
 async def getusrbc(client, cq: CallbackQuery):
     await cq.answer()
     query = cq.data.split("_")[1]
-    result = await get_usr(None, "flex", user=query)
+    result = await get_usr(None, "flex", user=int(query))
     pic, msg, btns = result
     await cq.edit_message_media(InputMediaPhoto(pic, caption=msg), reply_markup=btns)
 
@@ -326,7 +417,14 @@ async def fav_(client, cq: CallbackQuery):
         else (result[0]) if query[1]=="AIRING"
         else (result[0], result[1][0])
     )
-    btns = get_btns(query[1], result=result, user=user, auth=True, lsqry=query[3] if len(query)!=4 else None, lspage=int(query[4]) if len(query)!=4 else None)
+    btns = get_btns(
+        query[1],
+        result=result,
+        user=user,
+        auth=True,
+        lsqry=query[3] if len(query)!=4 else None,
+        lspage=int(query[4]) if len(query)!=4 else None
+    )
     await cq.edit_message_media(InputMediaPhoto(pic, caption=msg), reply_markup=btns)
 
 
@@ -338,7 +436,12 @@ async def ls_add_(client, cq: CallbackQuery):
     btns = []
     row = []
     for i in stts_ls:
-        row.append(InlineKeyboardButton(text=i, callback_data=cq.data.replace("lsadd", f"lsas_{i}") if query[0]=="lsadd" else cq.data.replace("lsupdt", f"lsus_{i}")))
+        row.append(
+            InlineKeyboardButton(
+                text=i,
+                callback_data=cq.data.replace("lsadd", f"lsas_{i}") if query[0]=="lsadd" else cq.data.replace("lsupdt", f"lsus_{i}")
+            )
+        )
         if len(row)==3:
             btns.append(row)
             row = []
@@ -525,3 +628,5 @@ HELP_DICT["user"] = """Use /user cmd to get info on a user
 **Usage:**
         `/user lostb053`
         `!user lostb053`"""
+
+HELP_DICT["sfw"] = "Use /sfw cmd to toggle nsfw settings in group"

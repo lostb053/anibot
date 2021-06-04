@@ -5,12 +5,17 @@
 # but is in current state after DeletedUser420's edits
 # which made this code shorter and more efficient
 
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 import tracemoepy, os
 from aiohttp import ClientSession
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from .. import BOT_NAME, HELP_DICT, TRIGGERS as trg
 from ..utils.helper import media_to_image
+from ..utils.data_parser import ck_is_adult
+from ..utils.db import get_collection
+
+SFW_GRPS = get_collection("SFW_GROUPS")
 
 
 @Client.on_message(filters.command(["reverse", f"reverse{BOT_NAME}"], prefixes=trg))
@@ -31,11 +36,19 @@ async def trace_bek(client: Client, message: Message):
                 f"\n**Episode**: `{result['episode']}`"
             )
             preview = await tracemoe.natural_preview(search)
+        if await ck_is_adult(int(result['anilist_id']))=="True" and await (SFW_GRPS.find_one({"id": message.chat.id})):
+            await message.reply_text("The results parsed seems to be 18+ and not allowed in this group")
+            return
         with open("preview.mp4", "wb") as f:
             f.write(preview)
             await session.close()
-        await message.reply_video("preview.mp4", caption=caption)
+        await message.reply_video(
+            "preview.mp4",
+            caption=caption,
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("More Info", url=f"https://anilist.co//anime/{result['anilist_id']}")]]))
         os.remove("preview.mp4")
+    else:
+        await message.reply_text("Couldn't parse results!!!")
     await x.delete()
 
 

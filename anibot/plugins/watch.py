@@ -9,7 +9,7 @@ from ..utils.helper import check_user
 
 
 @Client.on_message(filters.command(["watch", f"watch{BOT_NAME}"], prefixes=trg))
-async def get_schuled(client, message: Message):
+async def get_watch_order(client, message: Message):
     """Get List of Scheduled Anime"""
     x = message.text.split(" ", 1)[1]
     user = message.from_user.id

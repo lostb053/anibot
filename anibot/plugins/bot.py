@@ -6,6 +6,7 @@ from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, 
 from .. import BOT_NAME, TRIGGERS as trg, OWNER, HELP_DICT
 from ..utils.db import get_collection
 from ..utils.helper import AUTH_USERS, clog, check_user
+from .anilist import auth_link
 
 USERS = get_collection("USERS")
 GROUPS = get_collection("GROUPS")
@@ -23,14 +24,15 @@ async def start_(client: Client, message: Message):
             if message.text.split(" ")[1]=="help":
                 await help_(client, message)
                 return
+            if message.text.split(" ")[1]=="auth":
+                await auth_link(client, message)
+                return
         await client.send_message(
             message.chat.id,
             text=f"""Kon'nichiwa!!!
 I'm {bot.first_name} bot and I can help you get info on Animes, Mangas, Characters, Airings, Schedules, Watch Orders of Animes, etc
 For more info send /help in here.
-If you wish to use me in a group start me by /start{BOT_NAME} command after adding me in the group.
-
-**Note:** If bot doesn't responds properly in group, give it admin privilage"""
+If you wish to use me in a group start me by /start{BOT_NAME} command after adding me in the group."""
         )
     else:
         gid = message.chat
@@ -126,6 +128,12 @@ async def pong_(client: Client, message: Message):
     et = dt.now()
     pt = (et-st).microseconds / 1000
     await x.edit_text(f"__Pong!!!__\n`{pt} ms`")
+
+
+@Client.on_message(filters.command(['feedback', f'feedback{BOT_NAME}'], prefixes=trg))
+async def feed_(client: Client, message: Message):
+    owner = await client.get_users(OWNER)
+    await message.reply_text(f"For issues or queries please contact {owner.username} or join @hanabi_support")
 
 ###### credits to @NotThatMF on tg since he gave me the code for it ######
 
@@ -256,3 +264,4 @@ async def terminal(client, message):
 HELP_DICT["ping"] = "Use /ping or !ping cmd to check if bot is online"
 HELP_DICT["start"] = "Use /start or !start cmd to start bot in group or pm"
 HELP_DICT["help"] = "Use /help or !help cmd to get interactive help on available bot cmds"
+HELP_DICT["feedback"] = "Use /feedback cmd to contact bot owner"

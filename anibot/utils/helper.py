@@ -161,7 +161,7 @@ async def return_json_senpai(query: str, vars: dict, auth: bool = False, user: i
         response = requests.post(url, json={"query": query, "variables": vars}).json()
     else:
         headers = {
-        'Authorization': 'Bearer ' + str((await AUTH_USERS.find_one({"id": user}))['token']),
+        'Authorization': 'Bearer ' + str((await AUTH_USERS.find_one({"id": int(user)}))['token']),
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         }
@@ -214,11 +214,11 @@ async def clog(name: str, text: str, tag: str):
     await anibot.send_message(chat_id=LOG_CHANNEL_ID, text=log)
 
 
-def get_btns(media, user: int, result: list, lsqry: str = None, lspage: int = None, auth: bool = False):
+def get_btns(media, user: int, result: list, lsqry: str = None, lspage: int = None, auth: bool = False, sfw: str = "False"):
     buttons = []
     qry = f"_{lsqry}" if lsqry != None else ""
     pg = f"_{lspage}" if lspage != None else ""
-    if media == "ANIME":
+    if media == "ANIME" and sfw == "False":
         buttons.append([
             InlineKeyboardButton(text="Characters", callback_data=f"char_{result[2][0]}_ANI{qry}{pg}_{str(auth)}_{user}"),
             InlineKeyboardButton(text="Description", callback_data=f"desc_{result[2][0]}_ANI{qry}{pg}_{str(auth)}_{user}"),
@@ -237,11 +237,11 @@ def get_btns(media, user: int, result: list, lsqry: str = None, lspage: int = No
             buttons.append([InlineKeyboardButton(str(day_(result[0]+1)), callback_data=f"sched_{result[0]+1}_{user}")])
         if result[0] == 6:
             buttons.append([InlineKeyboardButton(str(day_(result[0]-1)), callback_data=f"sched_{result[0]-1}_{user}")])
-    if media == "MANGA":
+    if media == "MANGA" and sfw == "False":
         buttons.append([InlineKeyboardButton("More Info", url=result[1][2])])
-    if media == "AIRING":
+    if media == "AIRING" and sfw == "False":
         buttons.append([InlineKeyboardButton("More Info", url=result[1])])
-    if auth==True and media!="SCHEDULED":
+    if auth==True and media!="SCHEDULED" and sfw == "False":
         auth_btns = get_auth_btns(media, user, result[2], lspage=lspage, lsqry=lsqry)
         buttons.append(auth_btns)
     if len(result)>3:

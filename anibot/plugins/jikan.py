@@ -1,6 +1,6 @@
 # uses jikanpy (Jikan API)
 from pyrogram import Client, filters
-from pyrogram.types import Message, InlineKeyboardMarkup, CallbackQuery
+from pyrogram.types import Message, CallbackQuery
 from .. import BOT_NAME, HELP_DICT, TRIGGERS as trg
 from ..utils.data_parser import get_scheduled
 from ..utils.helper import get_btns, check_user
