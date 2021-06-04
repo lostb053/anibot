@@ -54,7 +54,6 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * plugins to be added / make it working
  ```
  top - to retrieve top animes for a genre
- trend - to retrieve trends
  ```
 
 
