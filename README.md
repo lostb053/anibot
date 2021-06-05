@@ -61,6 +61,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * plugins to be added / make it working
 ```
 empty
+Contact if u have suggestions
 ```
 
 
