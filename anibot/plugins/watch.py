@@ -9,16 +9,18 @@ from ..utils.helper import check_user
 
 
 @Client.on_message(filters.command(["watch", f"watch{BOT_NAME}"], prefixes=trg))
-async def get_watch_order(client, message: Message):
+async def get_watch_order(client: Client, message: Message):
     """Get List of Scheduled Anime"""
-    x = message.text.split(" ", 1)[1]
+    x = message.text.split(" ", 1)
+    if len(x)==1:
+        await message.reply_text("Nothing given to search for!!!")
     user = message.from_user.id
-    data = get_wols(x)
-    msg = f"Found related animes for the query {x}"
+    data = get_wols(x[1])
+    msg = f"Found related animes for the query {x[1]}"
     buttons = []
     for i in data:
-        buttons.append([InlineKeyboardButton(str(i[1]), callback_data=f"watch_{i[0]}_{x}_{user}")])
-    await message.reply_text(msg, reply_markup=InlineKeyboardMarkup(buttons))
+        buttons.append([InlineKeyboardButton(str(i[1]), callback_data=f"watch_{i[0]}_{x[1]}_{user}")])
+    await client.send_message(message.chat.id, msg, reply_markup=InlineKeyboardMarkup(buttons))
 
 
 @Client.on_callback_query(filters.regex(pattern=r"watch_(.*)"))

@@ -7,9 +7,9 @@ from ..utils.helper import get_btns, check_user
 
 
 @Client.on_message(filters.command(["schedule", f"schedule{BOT_NAME}"], prefixes=trg))
-async def get_schuled(client, message: Message):
+async def get_schuled(client: Client, message: Message):
     """Get List of Scheduled Anime"""
-    x = await message.reply_text("<code>Fetching Scheduled Animes</code>")
+    x = await client.send_message(message.chat.id, "<code>Fetching Scheduled Animes</code>")
     user = message.from_user.id
     msg = await get_scheduled()
     buttons = get_btns("SCHEDULED", result=[msg[1]], user=user)

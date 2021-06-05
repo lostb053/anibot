@@ -6,10 +6,11 @@ from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, 
 from .. import BOT_NAME, TRIGGERS as trg, OWNER, HELP_DICT
 from ..utils.db import get_collection
 from ..utils.helper import AUTH_USERS, clog, check_user
-from .anilist import auth_link
+from .anilist import auth_link_cmd
 
 USERS = get_collection("USERS")
 GROUPS = get_collection("GROUPS")
+SFW_GROUPS = get_collection("SFW_GROUPS")
 
 
 @Client.on_message(filters.command(['start', f'start{BOT_NAME}'], prefixes=trg))
@@ -20,12 +21,12 @@ async def start_(client: Client, message: Message):
         if not (user.id in OWNER) and not (await USERS.find_one({"id": user.id})):
             await asyncio.gather(USERS.insert_one({"id": user.id, "user": user.first_name}))
             await clog("ANIBOT", f"New User started bot\n\n[{user.first_name}](tg://user?id={user.id})\nID: `{user.id}`", "NEW_USER")
-        if len(message.text.split(" "))==2:
+        if len(message.text.split(" "))!=1:
             if message.text.split(" ")[1]=="help":
                 await help_(client, message)
                 return
             if message.text.split(" ")[1]=="auth":
-                await auth_link(client, message)
+                await auth_link_cmd(client, message)
                 return
         await client.send_message(
             message.chat.id,
@@ -110,12 +111,14 @@ async def stats_(client: Client, message: Message):
     nosus = await USERS.estimated_document_count()
     nosauus = await AUTH_USERS.estimated_document_count()
     nosgrps = await GROUPS.estimated_document_count()
+    nossgrps = await SFW_GROUPS.estimated_document_count()
     await x.edit_text(f"""
 Stats:-
 
 **User:** {nosus}
 **Authorised Users:** {nosauus}
 **Groups:** {nosgrps}
+**SFW Groups:** {nossgrps}
 **Ping:** `{pt} ms`
 """
     )
@@ -130,10 +133,10 @@ async def pong_(client: Client, message: Message):
     await x.edit_text(f"__Pong!!!__\n`{pt} ms`")
 
 
-@Client.on_message(filters.command(['feedback', f'feedback{BOT_NAME}'], prefixes=trg))
+@Client.on_message(filters.private & filters.command(['feedback', f'feedback{BOT_NAME}'], prefixes=trg))
 async def feed_(client: Client, message: Message):
-    owner = await client.get_users(OWNER)
-    await message.reply_text(f"For issues or queries please contact {owner.username} or join @hanabi_support")
+    owner = await client.get_users(OWNER[0])
+    await client.send_message(message.chat.id, f"For issues or queries please contact @{owner.username} or join @hanabi_support")
 
 ###### credits to @NotThatMF on tg since he gave me the code for it ######
 
@@ -191,9 +194,9 @@ async def aexec(code, client, message):
 
 
 @Client.on_message(filters.user(OWNER) & filters.command(["term", f"term{BOT_NAME}"], prefixes=trg))
-async def terminal(client, message):
+async def terminal(client: Client, message: Message):
     if len(message.text.split()) == 1:
-        await message.reply("Usage: `/term echo owo`")
+        await message.reply_text("Usage: `/term echo owo`")
         return
     args = message.text.split(None, 1)
     teks = args[1]
@@ -208,7 +211,7 @@ async def terminal(client, message):
                 )
             except Exception as err:
                 print(err)
-                await message.reply(
+                await message.reply_text(
                     """
 **Error:**
 ```{}```
@@ -233,7 +236,7 @@ async def terminal(client, message):
             errors = traceback.format_exception(
                 etype=exc_type, value=exc_obj, tb=exc_tb
             )
-            await message.reply(
+            await message.reply_text(
                 """**Error:**\n```{}```""".format("".join(errors)),
                 parse_mode="markdown",
             )
@@ -254,9 +257,9 @@ async def terminal(client, message):
             )
             os.remove(filename)
             return
-        await message.reply(f"**Output:**\n```{output}```", parse_mode="markdown")
+        await message.reply_text(f"**Output:**\n```{output}```", parse_mode="markdown")
     else:
-        await message.reply("**Output:**\n`No Output`")
+        await message.reply_text("**Output:**\n`No Output`")
 
 
 ##########################################################################
