@@ -78,5 +78,5 @@ For improvements PR or contact [@LostB053](https://t.me/lostb053) or [@hanabi_su
 Can ask for support too but don't expect much (since i myself am learning yet)<br>
 <br>
 <h4>Note: I dropped SauceNAO stuff cuz i couldnt represent it in some good looking manner<br>
-I would be grateful if anybody can help me parse results and organize them like <a href="https://t.me/reverseSearchBot">@reverseSearchBot</a></h4><br>
+I would be grateful if anybody can help me parse results and organize them like <a href="https://t.me/reverseSearchBot">@reverseSearchBot</a></h4>
 Something nearby but good looking would suffice too
