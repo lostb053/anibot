@@ -27,7 +27,7 @@
             "description":"Get this from https://t.me/botfather and enable Inline Mode"
         },
         "BOT_NAME":{
-            "description":"Your bot name with @, like @Hanabi_Yasuraoka_bot, Note: enter exact bot name with exact letters that are in capital"
+            "description":"Your bot name with @, like @hanabi_robot, Note: enter exact bot name with exact letters that are in capital"
         },
         "OWNER_ID":{
             "description":"Your user_id e.g 123456789, for multiple ids just add a space between them"
