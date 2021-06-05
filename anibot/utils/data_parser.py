@@ -479,7 +479,38 @@ fragment kek on ListActivity {
 }
 """
 
-async def get_us_act(id_, user):
+TOP_QUERY = """
+query ($gnr: String, $page: Int) {
+  Page (perPage: 15, page: $page) {
+    pageInfo {
+      lastPage
+    }
+    media (genre: $gnr, sort: SCORE_DESC, type: ANIME) {
+      title {
+        romaji
+      }
+    }
+  }
+}
+"""
+
+ALLTOP_QUERY = """
+query ($page: Int) {
+  Page (perPage: 15, page: $page) {
+    pageInfo {
+      lastPage
+    }
+    media (sort: SCORE_DESC, type: ANIME) {
+      title {
+        romaji
+      }
+    }
+  }
+}
+"""
+
+
+async def get_user_activity(id_, user):
     vars_ = {"id": id_}
     result = await return_json_senpai(ACTIVITY_QUERY, vars_, auth=True, user=user)
     data = result["data"]["Page"]["activities"]
@@ -494,7 +525,34 @@ async def get_us_act(id_, user):
     return f"https://img.anili.st/user/{id_}?a={time.time()}", msg, InlineKeyboardMarkup(btn)
 
 
-async def get_us_fav(id_, user, req, page):
+async def get_top_animes(gnr: str, page, user):
+    vars_ = {"gnr": gnr.lower(), "page": int(page)}
+    query = TOP_QUERY
+    if gnr=="None":
+        query = ALLTOP_QUERY
+        vars_ = {"page": int(page)}
+    result = await return_json_senpai(query, vars_, auth=False, user=user)
+    if len(result['data']['Page']['media'])==0:
+        return [f"No results Found"]
+    data = result["data"]["Page"]
+    msg = f"Top animes for genre `{gnr.capitalize()}`"
+    for i in data:
+        msg += f"⚬ {i['media']['title']['romaji']}"
+    btn = []
+    if int(page)==1:
+        if int(data['pageInfo']['lastPage'])!=1:
+            btn.append([InlineKeyboardButton("Next", callback_data=f"topanimu_{gnr}_{int(page)+1}_{user}")])
+    elif int(page) == int(data['pageInfo']['lastPage']):
+        btn.append([InlineKeyboardButton("Prev", callback_data=f"topanimu_{gnr}_{int(page)-1}_{user}")])
+    else:
+        btn.append([
+            InlineKeyboardButton("Prev", callback_data=f"topanimu_{gnr}_{int(page)-1}_{user}"),
+            InlineKeyboardButton("Next", callback_data=f"topanimu_{gnr}_{int(page)+1}_{user}")
+        ])
+    return msg, InlineKeyboardMarkup(btn)
+
+
+async def get_user_favourites(id_, user, req, page):
     vars_ = {"id": int(id_), "page": int(page)}
     result = await return_json_senpai(
         FAV_ANI_QUERY if req=="ANIME" else FAV_CHAR_QUERY if req=="CHAR" else FAV_MANGA_QUERY,
@@ -516,12 +574,12 @@ async def get_us_fav(id_, user, req, page):
         btn.append([
             InlineKeyboardButton("Prev", callback_data=f"myfavqry_{req}_{id_}_{str(int(page)-1)}_{user}"),
             InlineKeyboardButton("Next", callback_data=f"myfavqry_{req}_{id_}_{str(int(page)+1)}_{user}")
-            ])
+        ])
     btn.append([InlineKeyboardButton("Back", callback_data=f"myfavs_{id_}_{user}")])
     return f"https://img.anili.st/user/{id_}?a=({time.time()})", msg, InlineKeyboardMarkup(btn)
 
 
-async def get_ls(idm, req, auth: bool = False, user: int = None):
+async def get_featured_in_lists(idm, req, auth: bool = False, user: int = None):
     vars_ = {"id": int(idm)}
     result = await return_json_senpai(LS_INFO_QUERY, vars_, auth=auth, user=user)
     data = result["data"]["Character"]["media"]["nodes"]
@@ -545,7 +603,7 @@ async def get_ls(idm, req, auth: bool = False, user: int = None):
         return (out+out_ if len(out_) != 0 else False), result["data"]["Character"]["image"]["large"]
 
 
-async def get_info(idm, req, ctgry, auth: bool = False, user: int = None):
+async def get_additional_info(idm, req, ctgry, auth: bool = False, user: int = None):
     vars_ = {"id": int(idm)}
     result = await return_json_senpai(
         (
@@ -583,7 +641,7 @@ async def get_info(idm, req, ctgry, auth: bool = False, user: int = None):
         return pic, ps
 
 
-async def get_ani(vars_, auth: bool = False, user: int = None):
+async def get_anime(vars_, auth: bool = False, user: int = None):
     result = await return_json_senpai(ANIME_QUERY, vars_, auth=auth, user=user)
 
     error = result.get("errors")
@@ -687,7 +745,7 @@ async def get_ani(vars_, auth: bool = False, user: int = None):
     return title_img, finals_, [idm, in_ls, in_ls_id, isfav, str(adult)], prql_id, sql_id
 
 
-async def get_anilist(qdb, page,auth: bool = False, user: int = None):
+async def get_anilist(qdb, page, auth: bool = False, user: int = None):
     vars_ = {"search": ANIME_DB[qdb], "page": page}
     result = await return_json_senpai(PAGE_QUERY, vars_, auth=auth, user=user)
 
@@ -786,7 +844,7 @@ async def get_anilist(qdb, page,auth: bool = False, user: int = None):
     return title_img, [finals_, total], [idm, in_ls, in_ls_id, isfav, str(adult)]
 
 
-async def get_char(var, auth: bool = False, user: int = None):
+async def get_character(var, auth: bool = False, user: int = None):
     result = await return_json_senpai(CHARACTER_QUERY, var, auth=auth, user=user)
     if len(result['data']['Page']['characters'])==0:
         return [f"No results Found"]
@@ -910,7 +968,7 @@ async def get_airing(vars_, auth: bool = False, user: int = None):
     return [coverImg, out], site, [mid, in_ls, in_ls_id, isfav]
 
 
-async def tog_fav_(id_: int, media: str, user: int):
+async def toggle_favourites(id_: int, media: str, user: int):
     vars_ = {"id": int(id_)}
     query = (
       ANIME_MUTATION if media=="ANIME" or media=="AIRING"
@@ -925,7 +983,7 @@ async def tog_fav_(id_: int, media: str, user: int):
         return "failed"
 
 
-async def get_usr(vars_, req, user):
+async def get_user(vars_, req, user):
     query = USER_QRY if "user" in req else VIEWER_QRY
     k = await return_json_senpai(query=query, vars=vars_, auth=False if "user" in req else True, user=int(user))
     error = k.get("errors")
@@ -961,7 +1019,7 @@ Average Score: `{manga['meanScore']}`
     return f'https://img.anili.st/user/{data["id"]}?a={time.time()}', stats, InlineKeyboardMarkup(btn)
 
 
-async def ls_au_status(id, req, user, eid: int = None, status: str = None):
+async def update_anilist(id, req, user, eid: int = None, status: str = None):
     vars_ = {"id": int(id), "status": status}
     if req=="lsus":
         vars_ = {"id": int(eid), "status": status}
@@ -978,7 +1036,7 @@ async def ls_au_status(id, req, user, eid: int = None, status: str = None):
         return "failed"
 
 
-async def ck_is_adult(id_):
+async def check_if_adult(id_):
     vars_ = {"id": int(id_)}
     k = await return_json_senpai(query=ISADULT, vars=vars_, auth=False)
     if str(k['data']['Media']['isAdult'])=="True":
@@ -992,11 +1050,11 @@ async def ck_is_adult(id_):
 
 async def get_scheduled(x: int = 9):
     day = str(day_(x if x!=9 else datetime.now().weekday())).lower()
-    out = f"Scheduled animes for {day}\n\n"
+    out = f"Scheduled animes for {day.capitalize()}\n\n"
     async with AioJikan() as session:
         sched_ls = (await session.schedule(day=day)).get(day)
         for i in sched_ls:
-            out += f"• {i['title']}\n"
+            out += f"• `{i['title']}`\n"
     return out, x if x!=9 else datetime.now().weekday()
 
 ####     END      ####
@@ -1004,16 +1062,16 @@ async def get_scheduled(x: int = 9):
 #### chiaki part ####
 
 def get_wols(x: str):
-    data = requests.get(f"https://chiaki.vercel.app/search?query={x}").json()
+    data = requests.get(f"https://chiaki.vercel.app/search2?query={x}").json()
     ls = []
     for i in data:
-        sls = [i['id'], i['value']]
+        sls = [data[i], i]
         ls.append(sls)
     return ls
 
 
 def get_wo(x: int):
-    data = requests.get(f"https://chiaki.vercel.app/get?group_id={x}").json()
+    data = requests.get(f"https://chiaki.vercel.app/get2?group_id={x}").json()
     msg = "Watch order for the given query is:\n\n"
     for i in data:
         msg += f"{i['index']}. `{i['name']}`\n"
