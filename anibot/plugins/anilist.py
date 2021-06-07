@@ -7,6 +7,7 @@
 
 
 import asyncio, requests, time, random
+import re
 from pyrogram import filters, Client
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, Message
 from .. import ANILIST_CLIENT, ANILIST_REDIRECT_URL, ANILIST_SECRET, HELP_DICT, OWNER, TRIGGERS as trg, BOT_NAME
@@ -153,14 +154,14 @@ async def anilist_cmd(client: Client, message: Message):
 @Client.on_message(filters.command(["flex", f"flex{BOT_NAME}", "user", f"user{BOT_NAME}"], prefixes=trg))
 async def flex_cmd(client: Client, message: Message):
     query = message.text.split(" ", 1)
-    get_user = None
+    qry = None
     if "user" in query[0]:
         if not len(query)==2:
             k = await message.reply_text("NameError: 'query' not defined")
             await asyncio.sleep(5)
             return await k.delete()
         else:
-            get_user = {"search": query[1]}
+            qry = {"search": query[1]}
     user = message.from_user.id
     if not "user" in query[0] and not (await AUTH_USERS.find_one({"id": user})):
         bot_us = (await client.get_me()).username
@@ -168,7 +169,7 @@ async def flex_cmd(client: Client, message: Message):
             "Please connect your account first to use this cmd",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Auth", url=f"https://t.me/{bot_us}/?start=auth")]])
         )
-    result = await get_user(get_user, query[0], user)
+    result = await get_user(qry, query[0], user)
     if len(result) == 1:
         k = await message.reply_text(result[0])
         await asyncio.sleep(5)
@@ -587,7 +588,7 @@ async def update_anilist_btn(client, cq: CallbackQuery):
 
 @Client.on_callback_query(filters.regex(pattern=r"(desc|ls|char)_(.*)"))
 @check_user
-async def additional_info_btn(client, cq: CallbackQuery):
+async def additional_info_btn(client: Client, cq: CallbackQuery):
     await cq.answer()
     q = cq.data.split("_")
     kek, query, ctgry = q[0], q[1], q[2]
@@ -601,9 +602,18 @@ async def additional_info_btn(client, cq: CallbackQuery):
     lsqry = f"_{q[3]}" if len(q) > 4 else ""
     lspg = f"_{q[4]}" if len(q) > 4 else ""
     pic, result = await get_additional_info(query, kek, ctgry)
+    button = []
+    spoiler = False
+    bot = (await client.get_me()).username
+    if "~!" in result and "!~" in result:
+        result = re.sub(r"~!.*!~", "[Spoiler]", result)
+        spoiler = True
+        button.append([InlineKeyboardButton(text="View spoiler", url=f"https://t.me/{bot}/?start=des_{ctgry}_{query}")])
     if len(result) > 1000:
         result = result[:940] + "..."
-        result += "\n\nFor more info click back button and open synopsis link"
+        if spoiler==False:
+            result += "\n\nFor more info click below given button"
+            button.append([InlineKeyboardButton(text="More Info", url=f"https://t.me/{bot}/?start=des_{ctgry}_{query}")])
     msg = f"{info}:\n\n{result}"
     user = cq.data.split("_").pop()
     cbd = (
@@ -611,8 +621,8 @@ async def additional_info_btn(client, cq: CallbackQuery):
         else f"page_ANIME{lsqry}{lspg}_{q[5]}_{user}" if ctgry=="ANI"
         else f"page_CHARACTER{lsqry}{lspg}_{q[5]}_{user}"
     )
-    button = InlineKeyboardMarkup([[InlineKeyboardButton(text="Back", callback_data=cbd)]])
-    await cq.edit_message_media(InputMediaPhoto(pic, caption=msg), reply_markup=button)
+    button.append([InlineKeyboardButton(text="Back", callback_data=cbd)])
+    await cq.edit_message_media(InputMediaPhoto(pic, caption=msg), reply_markup=InlineKeyboardMarkup(button))
 
 
 @Client.on_callback_query(filters.regex(pattern=r"lsc_(.*)"))
@@ -627,10 +637,15 @@ async def featured_in_btn(client, cq: CallbackQuery):
         if result[0]==False:
             await cq.answer("No Data Available!!!")
             return
-    msg, pic = result
+    [msg, total], pic = result
     button = []
+    totalpg, kek = divmod(total, 15)
+    if kek!=0:
+        totalpg + 1
+    if total>15:
+        button.append([InlineKeyboardButton(text="Next", callback_data=f"lsca_{idm}_1_{qry}_{pg}_{auth}_{user}")])
     if req!=None:
-        button.append([InlineKeyboardButton(text="Manga", callback_data=f"lscm_{idm}_{qry}_{pg}_{auth}_{user}")])
+        button.append([InlineKeyboardButton(text="Manga", callback_data=f"lscm_{idm}_0_{qry}_{pg}_{auth}_{user}")])
     button.append([InlineKeyboardButton(text="Back", callback_data=f"page_CHARACTER_{qry}_{pg}_{auth}_{user}")])
     await cq.edit_message_media(InputMediaPhoto(pic, caption=msg), reply_markup=InlineKeyboardMarkup(button))
 
@@ -638,16 +653,31 @@ async def featured_in_btn(client, cq: CallbackQuery):
 @Client.on_callback_query(filters.regex(pattern=r"lsc(a|m)_(.*)"))
 @check_user
 async def featured_in_switch_btn(client, cq: CallbackQuery):
-    req, idm, qry, pg, auth, user = cq.data.split("_")
-    result = await get_featured_in_lists(int(idm), "MAN" if req=="lscm" else "ANI")
+    req, idm, reqpg, qry, pg, auth, user = cq.data.split("_")
+    result = await get_featured_in_lists(int(idm), "MAN" if req=="lscm" else "ANI", page=int(reqpg))
     reqb = "lsca" if req=="lscm" else "lscm"
     bt = "Anime"  if req=="lscm" else "Manga"
     if result[0]==False:
         await cq.answer("No Data Available!!!")
         return
-    msg, pic = result
+    [msg, total], pic = result
+    totalpg, kek = divmod(total, 15)
+    if kek!=0:
+        totalpg + 1
     button = []
-    button.append([InlineKeyboardButton(text=f"{bt}", callback_data=f"{reqb}_{idm}_{qry}_{pg}_{auth}_{user}")])
+    if total>15:
+        if int(reqpg)==0:
+            button.append([InlineKeyboardButton(text="Next", callback_data=f"{req}_{idm}_{int(reqpg)+1}_{qry}_{pg}_{auth}_{user}")])
+        elif int(reqpg)==totalpg:
+            button.append([InlineKeyboardButton(text="Back", callback_data=f"{req}_{idm}_{int(reqpg)-1}_{qry}_{pg}_{auth}_{user}")])
+        else:
+            button.append(
+                [
+                    InlineKeyboardButton(text="Back", callback_data=f"{req}_{idm}_{int(reqpg)-1}_{qry}_{pg}_{auth}_{user}"),
+                    InlineKeyboardButton(text="Next", callback_data=f"{req}_{idm}_{int(reqpg)+1}_{qry}_{pg}_{auth}_{user}")
+                ]
+            )
+    button.append([InlineKeyboardButton(text=f"{bt}", callback_data=f"{reqb}_{idm}_0_{qry}_{pg}_{auth}_{user}")])
     button.append([InlineKeyboardButton(text="Back", callback_data=f"page_CHARACTER_{qry}_{pg}_{auth}_{user}")])
     await cq.edit_message_media(InputMediaPhoto(pic, caption=msg), reply_markup=InlineKeyboardMarkup(button))
 

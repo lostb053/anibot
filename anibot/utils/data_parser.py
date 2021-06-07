@@ -528,16 +528,17 @@ async def get_user_activity(id_, user):
 async def get_top_animes(gnr: str, page, user):
     vars_ = {"gnr": gnr.lower(), "page": int(page)}
     query = TOP_QUERY
+    msg = f"Top animes for genre `{gnr.capitalize()}`:\n\n"
     if gnr=="None":
         query = ALLTOP_QUERY
         vars_ = {"page": int(page)}
+        msg = f"Top animes:\n\n"
     result = await return_json_senpai(query, vars_, auth=False, user=user)
     if len(result['data']['Page']['media'])==0:
         return [f"No results Found"]
     data = result["data"]["Page"]
-    msg = f"Top animes for genre `{gnr.capitalize()}`"
-    for i in data:
-        msg += f"⚬ {i['media']['title']['romaji']}"
+    for i in data['media']:
+        msg += f"⚬ `{i['title']['romaji']}`\n"
     btn = []
     if int(page)==1:
         if int(data['pageInfo']['lastPage'])!=1:
@@ -579,28 +580,31 @@ async def get_user_favourites(id_, user, req, page):
     return f"https://img.anili.st/user/{id_}?a=({time.time()})", msg, InlineKeyboardMarkup(btn)
 
 
-async def get_featured_in_lists(idm, req, auth: bool = False, user: int = None):
+async def get_featured_in_lists(idm, req, auth: bool = False, user: int = None, page: int = 0):
     vars_ = {"id": int(idm)}
     result = await return_json_senpai(LS_INFO_QUERY, vars_, auth=auth, user=user)
     data = result["data"]["Character"]["media"]["nodes"]
     if req == "ANI":
         out = "ANIMES:\n\n"
-        out_ = ""
+        out_ = []
         for ani in data:
             k = ani["title"]["english"] or ani["title"]["romaji"]
             kk = ani["type"]
             if kk == "ANIME":
-                out_ += f"• __{k}__\n"
-        return (out+out_ if len(out_) != 0 else False), result["data"]["Character"]["image"]["large"]
+                out_.append(f"• __{k}__\n")
     else:
         out = "MANGAS:\n\n"
-        out_ = ""
+        out_ = []
         for ani in data:
             k = ani["title"]["english"] or ani["title"]["romaji"]
             kk = ani["type"]
             if kk == "MANGA":
-                out_ += f"• __{k}__\n"
-        return (out+out_ if len(out_) != 0 else False), result["data"]["Character"]["image"]["large"]
+                out_.append(f"• __{k}__\n")
+    total = len(out_)
+    for _ in range(15*page):
+        out_.pop(0)
+    out_ = "".join(out_[:15])
+    return ([out+out_, total] if len(out_) != 0 else False), result["data"]["Character"]["image"]["large"]
 
 
 async def get_additional_info(idm, req, ctgry, auth: bool = False, user: int = None):

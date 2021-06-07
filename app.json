@@ -45,10 +45,6 @@
         "TRIGGERS":{
             "description":"Custom triggers, for multiple, just put a space between like '/ ?'. / and ! are defaults",
             "required":false
-        },
-        "SAUCE_API":{
-            "description":"Get it from https://saucenao.com if you wanna include reverse search with SauceNAO feature",
-            "required":false
         }
     },
     "buildpacks":[

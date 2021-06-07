@@ -1,4 +1,4 @@
-import io, sys, traceback, os, re, subprocess, asyncio
+import io, sys, traceback, os, re, subprocess, asyncio, requests
 from datetime import datetime as dt
 from natsort import natsorted
 from pyrogram import Client, filters
@@ -6,6 +6,7 @@ from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, 
 from .. import BOT_NAME, TRIGGERS as trg, OWNER, HELP_DICT
 from ..utils.db import get_collection
 from ..utils.helper import AUTH_USERS, clog, check_user
+from ..utils.data_parser import get_additional_info
 from .anilist import auth_link_cmd
 
 USERS = get_collection("USERS")
@@ -22,11 +23,17 @@ async def start_(client: Client, message: Message):
             await asyncio.gather(USERS.insert_one({"id": user.id, "user": user.first_name}))
             await clog("ANIBOT", f"New User started bot\n\n[{user.first_name}](tg://user?id={user.id})\nID: `{user.id}`", "NEW_USER")
         if len(message.text.split(" "))!=1:
-            if message.text.split(" ")[1]=="help":
+            deep_cmd = message.text.split(" ")[1]
+            if deep_cmd=="help":
                 await help_(client, message)
                 return
-            if message.text.split(" ")[1]=="auth":
+            if deep_cmd=="auth":
                 await auth_link_cmd(client, message)
+                return
+            if deep_cmd.split("_")[0]=="des":
+                pic, result = await get_additional_info(deep_cmd.split("_")[2], "desc", deep_cmd.split("_")[1])
+                await client.send_photo(user.id, pic)
+                await client.send_message(user.id, result.replace("~!", "").replace("!~", ""))
                 return
         await client.send_message(
             message.chat.id,
@@ -112,13 +119,16 @@ async def stats_(client: Client, message: Message):
     nosauus = await AUTH_USERS.estimated_document_count()
     nosgrps = await GROUPS.estimated_document_count()
     nossgrps = await SFW_GROUPS.estimated_document_count()
+    kk = requests.get("https://api.github.com/repos/lostb053/anibot").json()
     await x.edit_text(f"""
 Stats:-
 
-**User:** {nosus}
+**Users:** {nosus}
 **Authorised Users:** {nosauus}
 **Groups:** {nosgrps}
 **SFW Groups:** {nossgrps}
+**Stargazers:** {kk.get("stargazers_count")}
+**Forks:** {kk.get("forks")}
 **Ping:** `{pt} ms`
 """
     )
