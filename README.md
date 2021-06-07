@@ -56,14 +56,6 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 ```
 
 
-## Goals
-* Guess will try adding spam control (already tried once and failed)
-* plugins to be added / make it working
-```
-empty
-```
-
-
 ## Credits
 * AniList Api ([GitHub](https://github.com/AniList/ApiV2-GraphQL-Docs))
 * jikanpy ([GitHub](https://github.com/abhinavk99/jikanpy))
