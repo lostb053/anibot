@@ -45,6 +45,8 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
  /feedback - contact bot owner or main support grp at @hanabi_support
  /me or /activity - Get Anilist recent activity
  /favourites - Get Anilist favourites
+ /gettags - Get list of available Tags
+ /getgenres - Get list of available Genres
 ```
 
 
@@ -53,14 +55,6 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
  /eval - Runs python code (code must start right after cmd like "/eval print('UwU')")
  /term - Runs the code in terminal
  /stats - Gibs data on bot such as no. of grps/users and ping
-```
-
-
-## Goals
-* Guess will try adding spam control (already tried once and failed)
-* plugins to be added / make it working
-```
-empty
 ```
 
 
@@ -78,5 +72,5 @@ For improvements PR or contact [@LostB053](https://t.me/lostb053) or [@hanabi_su
 Can ask for support too but don't expect much (since i myself am learning yet)<br>
 <br>
 <h4>Note: I dropped SauceNAO stuff cuz i couldnt represent it in some good looking manner<br>
-I would be grateful if anybody can help me parse results and organize them like [@reverseSearchBot](https://t.me/reverseSearchBot)</h4><br>
+I would be grateful if anybody can help me parse results and organize them like <a href='https://t.me/reverseSearchBot'>@reverseSearchBot</a></h4><br>
 Something nearby but good looking would suffice too
