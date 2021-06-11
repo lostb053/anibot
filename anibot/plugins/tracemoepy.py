@@ -5,15 +5,16 @@
 # but is in current state after DeletedUser420's edits
 # which made this code shorter and more efficient
 
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-import tracemoepy, os
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, InputMediaPhoto, InputMediaVideo
+import tracemoepy, os, random
 from aiohttp import ClientSession
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from .. import BOT_NAME, HELP_DICT, TRIGGERS as trg
-from ..utils.helper import media_to_image
+from ..utils.helper import check_user, media_to_image
 from ..utils.data_parser import check_if_adult
 from ..utils.db import get_collection
+from .anilist import no_pic
 
 SFW_GRPS = get_collection("SFW_GROUPS")
 
@@ -27,29 +28,62 @@ async def trace_bek(client: Client, message: Message):
         async with ClientSession() as session:
             tracemoe = tracemoepy.AsyncTrace(session=session)
             search = await tracemoe.search(dls_loc, upload_file=True)
-            os.remove(dls_loc)
-            result = search["docs"][0]
-            caption = (
-                f"**Title**: {result['title_english']} (`{result['title_native']}`)\n"
-                f"\n**Anilist ID:** `{result['anilist_id']}`"
+            result = search["result"][0]
+            caption_ = (
+                f"**Title**: {result['anilist']['title']['english']} (`{result['anilist']['title']['native']}`)\n"
+                f"\n**Anilist ID:** `{result['anilist']['id']}`"
                 f"\n**Similarity**: `{(str(result['similarity']*100))[:5]}`"
                 f"\n**Episode**: `{result['episode']}`"
             )
-            preview = await tracemoe.natural_preview(search)
-        if await check_if_adult(int(result['anilist_id']))=="True" and await (SFW_GRPS.find_one({"id": message.chat.id})):
-            await message.reply_text("The results parsed seems to be 18+ and not allowed in this group")
-            return
-        with open("preview.mp4", "wb") as f:
-            f.write(preview)
-            await session.close()
-        await message.reply_video(
-            "preview.mp4",
-            caption=caption,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("More Info", url=f"https://anilist.co/anime/{result['anilist_id']}")]]))
-        os.remove("preview.mp4")
+            preview = result['video']
+        button = []
+        nsfw = False
+        if await check_if_adult(int(result['anilist']['id']))=="True" and await (SFW_GRPS.find_one({"id": message.chat.id})):
+            msg = no_pic[random.randint(0, 4)]
+            caption="The results parsed seems to be 18+ and not allowed in this group"
+            nsfw = True
+        else:
+            msg = preview
+            caption=caption_
+            button.append([InlineKeyboardButton("More Info", url=f"https://anilist.co/anime/{result['anilist']['id']}")])
+        button.append([InlineKeyboardButton("Next", callback_data=f"tracech_1_{dls_loc}_{message.from_user.id}")])
+        await (message.reply_video if nsfw==False else message.reply_photo)(msg, caption=caption, reply_markup=InlineKeyboardMarkup(button))
     else:
         await message.reply_text("Couldn't parse results!!!")
     await x.delete()
+
+
+@Client.on_callback_query()
+@check_user
+async def tracemoe_btn(client: Client, cq: CallbackQuery):
+    kek, page, dls_loc, user = cq.data.split("_")
+    async with ClientSession() as session:
+        tracemoe = tracemoepy.AsyncTrace(session=session)
+        search = await tracemoe.search(dls_loc, upload_file=True)
+        result = search["result"][int(page)]
+        caption = (
+            f"**Title**: {result['anilist']['title']['english']} (`{result['anilist']['title']['native']}`)\n"
+            f"\n**Anilist ID:** `{result['anilist']['id']}`"
+            f"\n**Similarity**: `{(str(result['similarity']*100))[:5]}`"
+            f"\n**Episode**: `{result['episode']}`"
+        )
+        preview = result['video']
+    button = []
+    if await check_if_adult(int(result['anilist']['id']))=="True" and await (SFW_GRPS.find_one({"id": cq.message.chat.id})):
+        msg = InputMediaPhoto(no_pic[random.randint(0, 4)], caption="The results parsed seems to be 18+ and not allowed in this group")
+    else:
+        msg = InputMediaVideo(preview, caption=caption)
+        button.append([InlineKeyboardButton("More Info", url=f"https://anilist.co/anime/{result['anilist']['id']}")])
+    if int(page)==0:
+        button.append([InlineKeyboardButton("Next", callback_data=f"tracech_{int(page)+1}_{dls_loc}_{user}")])
+    elif int(page)==(len(search['result'])-1):
+        button.append([InlineKeyboardButton("Back", callback_data=f"tracech_{int(page)-1}_{dls_loc}_{user}")])
+    else:
+        button.append([
+            InlineKeyboardButton("Back", callback_data=f"tracech_{int(page)-1}_{dls_loc}_{user}"),
+            InlineKeyboardButton("Next", callback_data=f"tracech_{int(page)+1}_{dls_loc}_{user}")
+        ])
+    await cq.edit_message_media(msg, reply_markup=InlineKeyboardMarkup(button))
 
 
 HELP_DICT["reverse"] = """Use /reverse cmd to get reverse search via tracemoepy API

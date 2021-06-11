@@ -12,8 +12,8 @@ from pyrogram import filters, Client
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, Message
 from .. import ANILIST_CLIENT, ANILIST_REDIRECT_URL, ANILIST_SECRET, HELP_DICT, OWNER, TRIGGERS as trg, BOT_NAME
 from ..utils.data_parser import (
-    get_top_animes, get_user_activity, get_user_favourites, toggle_favourites, get_anime,
-    get_airing, get_anilist, get_character, get_additional_info, get_manga,
+    get_all_genres, get_all_tags, get_top_animes, get_user_activity, get_user_favourites, toggle_favourites,
+    get_anime, get_airing, get_anilist, get_character, get_additional_info, get_manga,
     get_featured_in_lists, update_anilist, get_user, ANIME_DB, MANGA_DB
 )
 from ..utils.helper import check_user, get_btns, AUTH_USERS, rand_key, clog
@@ -312,9 +312,9 @@ async def favourites_cmd(client: Client, message: Message):
     btn = InlineKeyboardMarkup(
         [   
             [
-                InlineKeyboardButton("ANIME", callback_data=f"myfavqry_ANIME_{query}_1_{q}"),
-                InlineKeyboardButton("CHARACTER", callback_data=f"myfavqry_CHAR_{query}_1_{q}"),
-                InlineKeyboardButton("MANGA", callback_data=f"myfavqry_MANGA_{query}_1_{q}")
+                InlineKeyboardButton("ANIME", callback_data=f"myfavqry_ANIME_{query}_1_no_{q}"),
+                InlineKeyboardButton("CHARACTER", callback_data=f"myfavqry_CHAR_{query}_1_no_{q}"),
+                InlineKeyboardButton("MANGA", callback_data=f"myfavqry_MANGA_{query}_1_no_{q}")
             ],
             [
                 InlineKeyboardButton("Profile", url=f"https://anilist.co/user/{query}")
@@ -331,6 +331,12 @@ async def logout_cmd(client, message: Message):
         await message.reply_text("Logged out!!!")
     else:
         await message.reply_text("You are not authorized to begin with!!!")
+
+
+@Client.on_message(filters.command(["gettags", f"gettags{BOT_NAME}", "getgenres", f"getgenres{BOT_NAME}"], prefixes=trg))
+async def list_tags_genres_cmd(client, message: Message):
+    msg = (await get_all_tags()) if "gettags" in message.text.split(" ")[0] else (await get_all_genres())
+    await message.reply_text(msg)
 
 
 @Client.on_callback_query(filters.regex(pattern=r"page_(.*)"))
@@ -425,16 +431,15 @@ async def flex_btn(client, cq: CallbackQuery):
 async def list_favourites_btn(client, cq: CallbackQuery):
     await cq.answer()
     q = cq.data.split("_")
-    btn = [
-        [
-            InlineKeyboardButton("ANIME", callback_data=f"myfavqry_ANIME_{q[1]}_1_{q[2]}"),
-            InlineKeyboardButton("CHARACTER", callback_data=f"myfavqry_CHAR_{q[1]}_1_{q[2]}"),
-            InlineKeyboardButton("MANGA", callback_data=f"myfavqry_MANGA_{q[1]}_1_{q[2]}")
-        ],
-        [
-            InlineKeyboardButton("Back", callback_data=f"getusrbc_{q[2]}")
-        ]
-    ]
+    btn = [[
+        InlineKeyboardButton("ANIME", callback_data=f"myfavqry_ANIME_{q[1]}_1_{q[2]}_{q[3]}"),
+        InlineKeyboardButton("CHARACTER", callback_data=f"myfavqry_CHAR_{q[1]}_1_{q[2]}_{q[3]}"),
+        InlineKeyboardButton("MANGA", callback_data=f"myfavqry_MANGA_{q[1]}_1_{q[2]}_{q[3]}")
+    ]]
+    if q[2] == "yes":
+        btn.append([InlineKeyboardButton("Back", callback_data=f"getusrbc_{q[3]}")])
+    else:
+        btn.append([InlineKeyboardButton("Profile", url=f"https://anilist.co/user/{q[1]}")])
     await cq.edit_message_media(
         InputMediaPhoto(f"https://img.anili.st/user/{q[1]}?a={time.time()}", caption="Choose one of the below options"),
         reply_markup=InlineKeyboardMarkup(btn)
@@ -446,7 +451,7 @@ async def list_favourites_btn(client, cq: CallbackQuery):
 async def favourites_btn(client, cq: CallbackQuery):
     await cq.answer()
     q = cq.data.split("_")
-    pic, msg, btns = await get_user_favourites(q[2], int(q[4]), q[1], q[3])
+    pic, msg, btns = await get_user_favourites(q[2], int(q[5]), q[1], q[3], q[4])
     await cq.edit_message_media(InputMediaPhoto(pic, caption=msg), reply_markup=btns)
 
 
@@ -728,4 +733,4 @@ HELP_DICT["user"] = """Use /user cmd to get info on a user
 HELP_DICT["sfw"] = "Use /sfw cmd to toggle nsfw settings in group"
 HELP_DICT["me"] = "Use /me or !me cmd to get your anilist recent activity\nCan also use /activity or !activity"
 HELP_DICT["favourites"] = "Use /favourites or !favourites cmd to get your anilist favourites"
-HELP_DICT["top"] = "Use /top cmd to lookup top animes of a genre or from all animes"
+HELP_DICT["top"] = "Use /top cmd to lookup top animes of a genre/tag or from all animes\nTo get a list of available tags or genres send /gettags or /getgenres"

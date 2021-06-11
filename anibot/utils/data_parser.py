@@ -1,5 +1,6 @@
 import requests, time
 from .helper import cflag, make_it_rw, pos_no, return_json_senpai, day_
+from .. import BOT_NAME
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from jikanpy import AioJikan
 from datetime import datetime
@@ -12,11 +13,12 @@ ANIME_TEMPLATE = """{name}
 
 **ID | MAL ID:** `{idm}` | `{idmal}`
 ➤ **SOURCE:** `{source}`
-➤ **TYPE:** `{formats}`{dura}
+➤ **TYPE:** `{formats}`{dura}{gnrs_}
 {status_air}{user_data}
 ➤ **ADULT RATED:** `{adult}`
 🎬 {trailer_link}
-📖 <a href="{url}">Synopsis & More</a>
+📖 <a href="{surl}">Synopsis</a>
+📖 <a href="{url}">Official Site</a>
 
 {additional}"""
 
@@ -41,6 +43,7 @@ query ($id: Int, $idMal:Int, $search: String) {
       id
       site
     }
+    genres
     relations {
       edges {
         node {
@@ -279,7 +282,7 @@ query ($id: Int, $idMal:Int, $search: String) {
 
 DES_INFO_QUERY = """
 query ($id: Int) {
-  Media (id: $id, type: ANIME) {
+  Media (id: $id) {
     id
     description (asHtml: false)
   }
@@ -343,6 +346,7 @@ query ($search: String, $page: Int) {
         id
         site
       }
+      genres
       relations {
         edges {
           node {
@@ -484,8 +488,25 @@ query ($gnr: String, $page: Int) {
   Page (perPage: 15, page: $page) {
     pageInfo {
       lastPage
+      total
     }
     media (genre: $gnr, sort: SCORE_DESC, type: ANIME) {
+      title {
+        romaji
+      }
+    }
+  }
+}
+"""
+
+TOPT_QUERY = """
+query ($gnr: String, $page: Int) {
+  Page (perPage: 15, page: $page) {
+    pageInfo {
+      lastPage
+      total
+    }
+    media (tag: $gnr, sort: SCORE_DESC, type: ANIME) {
       title {
         romaji
       }
@@ -499,6 +520,7 @@ query ($page: Int) {
   Page (perPage: 15, page: $page) {
     pageInfo {
       lastPage
+      total
     }
     media (sort: SCORE_DESC, type: ANIME) {
       title {
@@ -508,6 +530,43 @@ query ($page: Int) {
   }
 }
 """
+
+GET_GENRES = """
+query {
+  GenreCollection
+}
+"""
+
+GET_TAGS = """
+query{
+  MediaTagCollection {
+    name
+    isAdult
+  }
+}
+"""
+
+
+async def get_all_tags():
+    vars_ = {}
+    result = await return_json_senpai(GET_TAGS, vars_, auth=False, user=None)
+    msg = "**Tags List:**\n\n`"
+    kek = []
+    for i in result['data']['MediaTagCollection']:
+        if str(i['isAdult'])=='False':
+            kek.append(i['name'])
+    msg += ", ".join(kek)
+    msg += "`"
+    return msg
+
+
+async def get_all_genres():
+    vars_ = {}
+    result = await return_json_senpai(GET_GENRES, vars_, auth=False)
+    msg = "**Genres List:**\n\n"
+    for i in result['data']['GenreCollection']:
+        msg += f"{i}\n"
+    return msg
 
 
 async def get_user_activity(id_, user):
@@ -535,10 +594,15 @@ async def get_top_animes(gnr: str, page, user):
         msg = f"Top animes:\n\n"
     result = await return_json_senpai(query, vars_, auth=False, user=user)
     if len(result['data']['Page']['media'])==0:
-        return [f"No results Found"]
+        query = TOPT_QUERY
+        msg = f"Top animes for tag `{gnr.capitalize()}`:\n\n"
+        result = await return_json_senpai(query, vars_, auth=False, user=user)
+        if len(result['data']['Page']['media'])==0:
+            return [f"No results Found"]
     data = result["data"]["Page"]
     for i in data['media']:
         msg += f"⚬ `{i['title']['romaji']}`\n"
+    msg += f"\nTotal available animes: `{data['pageInfo']['total']}`"
     btn = []
     if int(page)==1:
         if int(data['pageInfo']['lastPage'])!=1:
@@ -553,7 +617,7 @@ async def get_top_animes(gnr: str, page, user):
     return msg, InlineKeyboardMarkup(btn)
 
 
-async def get_user_favourites(id_, user, req, page):
+async def get_user_favourites(id_, user, req, page, sighs):
     vars_ = {"id": int(id_), "page": int(page)}
     result = await return_json_senpai(
         FAV_ANI_QUERY if req=="ANIME" else FAV_CHAR_QUERY if req=="CHAR" else FAV_MANGA_QUERY,
@@ -568,15 +632,15 @@ async def get_user_favourites(id_, user, req, page):
     btn = []
     if int(page)==1:
         if int(data['pageInfo']['lastPage'])!=1:
-            btn.append([InlineKeyboardButton("Next", callback_data=f"myfavqry_{req}_{id_}_{str(int(page)+1)}_{user}")])
+            btn.append([InlineKeyboardButton("Next", callback_data=f"myfavqry_{req}_{id_}_{str(int(page)+1)}_{sighs}_{user}")])
     elif int(page) == int(data['pageInfo']['lastPage']):
-        btn.append([InlineKeyboardButton("Prev", callback_data=f"myfavqry_{req}_{id_}_{str(int(page)-1)}_{user}")])
+        btn.append([InlineKeyboardButton("Prev", callback_data=f"myfavqry_{req}_{id_}_{str(int(page)-1)}_{sighs}_{user}")])
     else:
         btn.append([
-            InlineKeyboardButton("Prev", callback_data=f"myfavqry_{req}_{id_}_{str(int(page)-1)}_{user}"),
-            InlineKeyboardButton("Next", callback_data=f"myfavqry_{req}_{id_}_{str(int(page)+1)}_{user}")
+            InlineKeyboardButton("Prev", callback_data=f"myfavqry_{req}_{id_}_{str(int(page)-1)}_{sighs}_{user}"),
+            InlineKeyboardButton("Next", callback_data=f"myfavqry_{req}_{id_}_{str(int(page)+1)}_{sighs}_{user}")
         ])
-    btn.append([InlineKeyboardButton("Back", callback_data=f"myfavs_{id_}_{user}")])
+    btn.append([InlineKeyboardButton("Back", callback_data=f"myfavs_{id_}_{sighs}_{user}")])
     return f"https://img.anili.st/user/{id_}?a=({time.time()})", msg, InlineKeyboardMarkup(btn)
 
 
@@ -673,6 +737,10 @@ async def get_anime(vars_, auth: bool = False, user: int = None):
     adult = data.get("isAdult")
     url = data.get("siteUrl")
     trailer_link = "N/A"
+    gnrs = ", ".join(data['genres'])
+    bot = BOT_NAME.replace("@", "")
+    if len(gnrs)!=0:
+        gnrs_ = f"\n➤ **GENRES:** `{gnrs}`"
     isfav = data.get("isFavourite")
     fav = ", in Favourites" if isfav==True else ""
     user_data = ""
@@ -715,6 +783,7 @@ async def get_anime(vars_, auth: bool = False, user: int = None):
             sql_id = i["node"]["id"]
             break
     additional = f"{prql}{sql}"
+    surl = f"https://t.me/{bot}/?start=des_ANI_{idm}"
     dura = (
         f"\n➤ **DURATION:** `{duration} min/ep`"
         if duration != None
@@ -760,6 +829,7 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
     # Data of all fields in returned json
     # pylint: disable=possibly-unused-variable
     idm = data.get("id")
+    bot = BOT_NAME.replace("@", "")
     idmal = data.get("idMal")
     romaji = data["title"]["romaji"]
     english = data["title"]["english"]
@@ -775,6 +845,9 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
     adult = data.get("isAdult")
     trailer_link = "N/A"
     isfav = data.get("isFavourite")
+    gnrs = ", ".join(data['genres'])
+    if len(gnrs)!=0:
+        gnrs_ = f"\n➤ **GENRES:** `{gnrs}`"
     fav = ", in Favourites" if isfav==True else ""
     in_ls = False
     in_ls_id = ""
@@ -840,6 +913,7 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
         trailer_link = f"<a href='https://youtu.be/{data['trailer']['id']}'>Trailer</a>"
     url = data.get("siteUrl")
     title_img = f"https://img.anili.st/media/{idm}"
+    surl = f"https://t.me/{bot}/?start=des_ANI_{idm}"
     total = result["data"]["Page"]["pageInfo"]["total"]
     try:
         finals_ = ANIME_TEMPLATE.format(**locals())
@@ -887,7 +961,7 @@ async def get_manga(qdb, page, auth: bool = False, user: int = None):
     synopsis = data.get("description")
     description = synopsis[:500]
     if len(synopsis) > 500:
-        description += "..."
+        description += f"...\n\n[For more info click here](https://{BOT_NAME.replace('@', '')}/?start=des_ANI_{idm})"
     volumes = data.get("volumes")
     chapters = data.get("chapters")
     score = data.get("averageScore")
@@ -1016,7 +1090,7 @@ Average Score: `{manga['meanScore']}`
     btn = []
     if not "user" in req:
         btn.append([
-            InlineKeyboardButton("Favourites", callback_data=f"myfavs_{data['id']}_{user}"),
+            InlineKeyboardButton("Favourites", callback_data=f"myfavs_{data['id']}_yes_{user}"),
             InlineKeyboardButton("Activity", callback_data=f"myacc_{data['id']}_{user}")
         ])
     btn.append([InlineKeyboardButton("Profile", url=str(data['siteUrl']))])

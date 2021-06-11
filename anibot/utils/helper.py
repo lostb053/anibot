@@ -89,7 +89,7 @@ async def media_to_image(client: Client, message: Message, x: Message):
     )
     dls_loc = os.path.join(DOWN_PATH, os.path.basename(dls))
     if replied.sticker and replied.sticker.file_name.endswith(".tgs"):
-        png_file = os.path.join(DOWN_PATH, "image.png")
+        png_file = os.path.join(DOWN_PATH, f"{rand_key()}.png")
         cmd = f"lottie_convert.py --frame 0 -if lottie -of png {dls_loc} {png_file}"
         stdout, stderr = (await runcmd(cmd))[:2]
         os.remove(dls_loc)
@@ -100,7 +100,7 @@ async def media_to_image(client: Client, message: Message, x: Message):
             raise Exception(stdout + stderr)
         dls_loc = png_file
     elif replied.sticker and replied.sticker.file_name.endswith(".webp"):
-        stkr_file = os.path.join(DOWN_PATH, "stkr.png")
+        stkr_file = os.path.join(DOWN_PATH, f"{rand_key()}.png")
         os.rename(dls_loc, stkr_file)
         if not os.path.lexists(stkr_file):
             await x.edit_text("```Sticker not found...```")
@@ -110,7 +110,7 @@ async def media_to_image(client: Client, message: Message, x: Message):
         dls_loc = stkr_file
     elif replied.animation or replied.video:
         await x.edit_text("`Converting Media To Image ...`")
-        jpg_file = os.path.join(DOWN_PATH, "image.jpg")
+        jpg_file = os.path.join(DOWN_PATH, f"{rand_key()}.jpg")
         await take_screen_shot(dls_loc, 0, jpg_file)
         os.remove(dls_loc)
         if not os.path.lexists(jpg_file):
