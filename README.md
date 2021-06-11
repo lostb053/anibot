@@ -39,7 +39,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
  /code - Generates access token from the authorization code from authorization website
  /logout - removes authorization
  /sfw - To toggle nsfw lock in groups
- /top - to retrieve top animes for a genre
+ /top - to retrieve top animes for a genre or tag
  /reverse - Reverse search powered by tracemoepy
  /watch - Fetches watch order for anime series
  /feedback - contact bot owner or main support grp at @hanabi_support
@@ -72,5 +72,4 @@ For improvements PR or contact [@LostB053](https://t.me/lostb053) or [@hanabi_su
 Can ask for support too but don't expect much (since i myself am learning yet)<br>
 <br>
 <h4>Note: I dropped SauceNAO stuff cuz i couldnt represent it in some good looking manner<br>
-I would be grateful if anybody can help me parse results and organize them like <a href='https://t.me/reverseSearchBot'>@reverseSearchBot</a></h4><br>
-Something nearby but good looking would suffice too
+I would be grateful if anybody can help me parse results and organize them like <a href='https://t.me/reverseSearchBot'>@reverseSearchBot</a></h4><br>Something nearby but good looking would suffice too
