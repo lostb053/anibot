@@ -565,7 +565,7 @@ async def get_all_genres():
     result = await return_json_senpai(GET_GENRES, vars_, auth=False)
     msg = "**Genres List:**\n\n"
     for i in result['data']['GenreCollection']:
-        msg += f"{i}\n"
+        msg += f"`{i}`\n"
     return msg
 
 
@@ -1148,11 +1148,16 @@ def get_wols(x: str):
     return ls
 
 
-def get_wo(x: int):
+def get_wo(x: int, page: int):
     data = requests.get(f"https://chiaki.vercel.app/get2?group_id={x}").json()
     msg = "Watch order for the given query is:\n\n"
+    out = []
     for i in data:
-        msg += f"{i['index']}. `{i['name']}`\n"
-    return msg
+        out.append(f"{i['index']}. `{i['name']}`\n")
+    total = len(out)
+    for _ in range(50*page):
+        out.pop(0)
+    out_ = "".join(out[:50])
+    return msg+out_, total
 
 ####     END     ####

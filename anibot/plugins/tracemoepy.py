@@ -6,7 +6,7 @@
 # which made this code shorter and more efficient
 
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, InputMediaPhoto, InputMediaVideo
-import tracemoepy, os, random
+import tracemoepy, random
 from aiohttp import ClientSession
 from pyrogram import Client, filters
 from pyrogram.types import Message
@@ -53,7 +53,7 @@ async def trace_bek(client: Client, message: Message):
     await x.delete()
 
 
-@Client.on_callback_query()
+@Client.on_callback_query(filters.regex(pattern=r"tracech_(.*)"))
 @check_user
 async def tracemoe_btn(client: Client, cq: CallbackQuery):
     kek, page, dls_loc, user = cq.data.split("_")
