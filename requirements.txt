@@ -10,3 +10,4 @@ motor
 dnspython
 jikanpy
 natsort
+apscheduler

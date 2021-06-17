@@ -63,20 +63,14 @@ def check_user(func):
     return wrapper
 
 
-async def media_to_image(client: Client, message: Message, x: Message):
-    replied = message.reply_to_message
-    if not replied:
-        await x.edit_text("`Reply to some media !`")
-        await asyncio.sleep(5)
-        await x.delete()
-        return
+async def media_to_image(client: Client, message: Message, x: Message, replied: Message):
     if not (
         replied.photo
         or replied.sticker
         or replied.animation
         or replied.video
     ):
-        await x.edit_text("`Media Type Is Invalid !`")
+        await x.edit_text("Media Type Is Invalid !")
         await asyncio.sleep(5)
         await x.delete()
         return

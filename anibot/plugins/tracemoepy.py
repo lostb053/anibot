@@ -6,28 +6,48 @@
 # which made this code shorter and more efficient
 
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, InputMediaPhoto, InputMediaVideo
-import tracemoepy, random
+import tracemoepy, random, asyncio
+from tracemoepy.errors import ServerError
 from aiohttp import ClientSession
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from .. import BOT_NAME, HELP_DICT, TRIGGERS as trg
-from ..utils.helper import check_user, media_to_image
+from ..utils.helper import check_user, media_to_image, rand_key
 from ..utils.data_parser import check_if_adult
 from ..utils.db import get_collection
 from .anilist import no_pic
 
 SFW_GRPS = get_collection("SFW_GROUPS")
+DC = get_collection('DISABLED_CMDS')
 
+TRACE_MOE = {}
 
 @Client.on_message(filters.command(["reverse", f"reverse{BOT_NAME}"], prefixes=trg))
 async def trace_bek(client: Client, message: Message):
     """ Reverse Search Anime Clips/Photos """
+    find_gc = await DC.find_one({'_id': message.chat.id})
+    if find_gc!=None and 'reverse' in find_gc['cmd_list'].split():
+        return
     x = await message.reply_text("Reverse searching the given media")
-    dls_loc = await media_to_image(client, message, x)
+    replied = message.reply_to_message
+    if not replied:
+        await x.edit_text("Reply to some media !")
+        await asyncio.sleep(5)
+        await x.delete()
+        return
+    dls_loc = await media_to_image(client, message, x, replied)
     if dls_loc:
         async with ClientSession() as session:
             tracemoe = tracemoepy.AsyncTrace(session=session)
-            search = await tracemoe.search(dls_loc, upload_file=True)
+            try:
+                search = await tracemoe.search(dls_loc, upload_file=True)
+            except ServerError:
+                x.edit_text('ServerError, retrying')
+                try:
+                    search = await tracemoe.search(dls_loc, upload_file=True)
+                except ServerError:
+                    x.edit_text('Couldnt parse results!!!')
+                    return
             result = search["result"][0]
             caption_ = (
                 f"**Title**: {result['anilist']['title']['english']} (`{result['anilist']['title']['native']}`)\n"
@@ -46,7 +66,9 @@ async def trace_bek(client: Client, message: Message):
             msg = preview
             caption=caption_
             button.append([InlineKeyboardButton("More Info", url=f"https://anilist.co/anime/{result['anilist']['id']}")])
-        button.append([InlineKeyboardButton("Next", callback_data=f"tracech_1_{dls_loc}_{message.from_user.id}")])
+        dls_js = rand_key()
+        TRACE_MOE[dls_js] = dls_loc
+        button.append([InlineKeyboardButton("Next", callback_data=f"tracech_1_{dls_js}_{message.from_user.id}")])
         await (message.reply_video if nsfw==False else message.reply_photo)(msg, caption=caption, reply_markup=InlineKeyboardMarkup(button))
     else:
         await message.reply_text("Couldn't parse results!!!")
@@ -57,9 +79,16 @@ async def trace_bek(client: Client, message: Message):
 @check_user
 async def tracemoe_btn(client: Client, cq: CallbackQuery):
     kek, page, dls_loc, user = cq.data.split("_")
+    try:
+        TRACE_MOE[dls_loc]
+    except KeyError:
+        return await cq.answer("Query Expired!!!\nCreate new one", show_alert=True)
     async with ClientSession() as session:
         tracemoe = tracemoepy.AsyncTrace(session=session)
-        search = await tracemoe.search(dls_loc, upload_file=True)
+        try:
+            search = await tracemoe.search(TRACE_MOE[dls_loc], upload_file=True)
+        except ServerError:
+            return await cq.answer("ServerError!!!\nTry again after some time", show_alert=True)
         result = search["result"][int(page)]
         caption = (
             f"**Title**: {result['anilist']['title']['english']} (`{result['anilist']['title']['native']}`)\n"
@@ -84,13 +113,3 @@ async def tracemoe_btn(client: Client, cq: CallbackQuery):
             InlineKeyboardButton("Next", callback_data=f"tracech_{int(page)+1}_{dls_loc}_{user}")
         ])
     await cq.edit_message_media(msg, reply_markup=InlineKeyboardMarkup(button))
-
-
-HELP_DICT["reverse"] = """Use /reverse cmd to get reverse search via tracemoepy API
-
-__Note: This works best on uncropped anime pic,
-when used on cropped media, you may get result but it might not be too reliable__
-
-**Usage:**
-        `/reverse (reply to gif, video, photo)`
-        `!reverse (reply to gif, video, photo)`"""

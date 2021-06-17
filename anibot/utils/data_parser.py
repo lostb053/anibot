@@ -1,4 +1,5 @@
 import requests, time
+from bs4 import BeautifulSoup
 from .helper import cflag, make_it_rw, pos_no, return_json_senpai, day_
 from .. import BOT_NAME
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -575,11 +576,14 @@ async def get_user_activity(id_, user):
     data = result["data"]["Page"]["activities"]
     msg = ""
     for i in data:
-        name = f"[{i['media']['title']['romaji']}]({i['media']['siteUrl']})"
-        if i['status'] in ["watched episode", "read chapter"]:
-            msg += f"⚬ {str(i['status']).capitalize()} {i['progress']} of {name}\n"
-        else:
-            msg += f"⚬ {str(i['status']).capitalize()} {name}\n"
+        try:
+            name = f"[{i['media']['title']['romaji']}]({i['media']['siteUrl']})"
+            if i['status'] in ["watched episode", "read chapter"]:
+                msg += f"⚬ {str(i['status']).capitalize()} {i['progress']} of {name}\n"
+            else:
+                msg += f"⚬ {str(i['status']).capitalize()} {name}\n"
+        except KeyError:
+            pass
     btn = [[InlineKeyboardButton("Back", callback_data=f"getusrbc_{user}")]]
     return f"https://img.anili.st/user/{id_}?a={time.time()}", msg, InlineKeyboardMarkup(btn)
 
@@ -626,7 +630,7 @@ async def get_user_favourites(id_, user, req, page, sighs):
         user=int(user)
     )
     data = result["data"]["User"]["favourites"]["anime" if req=="ANIME" else "characters" if req=="CHAR" else "manga"]
-    msg = "Favourite animes:\n\n"
+    msg = "Favourite Animes:\n\n" if req=="ANIME" else "Favourite Characters:\n\n" if req=="CHAR" else "Favourite Manga:\n\n"
     for i in data["edges"]:
         msg += f"⚬ [{i['node']['title']['romaji'] if req!='CHAR' else i['node']['name']['full']}]({i['node']['siteUrl']})\n"
     btn = []
@@ -739,6 +743,7 @@ async def get_anime(vars_, auth: bool = False, user: int = None):
     trailer_link = "N/A"
     gnrs = ", ".join(data['genres'])
     bot = BOT_NAME.replace("@", "")
+    gnrs_ = ""
     if len(gnrs)!=0:
         gnrs_ = f"\n➤ **GENRES:** `{gnrs}`"
     isfav = data.get("isFavourite")
@@ -846,6 +851,7 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
     trailer_link = "N/A"
     isfav = data.get("isFavourite")
     gnrs = ", ".join(data['genres'])
+    gnrs_ = ""
     if len(gnrs)!=0:
         gnrs_ = f"\n➤ **GENRES:** `{gnrs}`"
     fav = ", in Favourites" if isfav==True else ""
@@ -961,7 +967,7 @@ async def get_manga(qdb, page, auth: bool = False, user: int = None):
     synopsis = data.get("description")
     description = synopsis[:500]
     if len(synopsis) > 500:
-        description += f"...\n\n[For more info click here](https://{BOT_NAME.replace('@', '')}/?start=des_ANI_{idm})"
+        description += f"...`\n\n[For more info click here](https://t.me/{BOT_NAME.replace('@', '')}/?start=des_ANI_{idm})`"
     volumes = data.get("volumes")
     chapters = data.get("chapters")
     score = data.get("averageScore")
@@ -1161,3 +1167,116 @@ def get_wo(x: int, page: int):
     return msg+out_, total
 
 ####     END     ####
+
+##### Anime Fillers Part #####
+
+def search_filler(query):
+    html = requests.get("https://www.animefillerlist.com/shows").text
+    soup = BeautifulSoup(html, "html.parser")
+    div = soup.findAll("div", attrs={"class": "Group"})
+    index = {}
+    for i in div:
+        li = i.findAll("li")
+        for jk in li:
+            yum = jk.a["href"].split("/")[-1]
+            cum = jk.text
+            index[cum] = yum
+    ret = {}
+    keys = list(index.keys())
+    for i in range(len(keys)):
+        if query.lower() in keys[i].lower():
+            ret[keys[i]] = index[keys[i]]
+    return ret
+
+
+def parse_filler(filler_id):
+    url = "https://www.animefillerlist.com/shows/" + filler_id
+    html = requests.get(url).text
+    soup = BeautifulSoup(html, "html.parser")
+    div = soup.find("div", attrs={"id": "Condensed"})
+    all_ep = div.find_all("span", attrs={"class": "Episodes"})
+    if len(all_ep) == 1:
+        ttl_ep = all_ep[0].findAll("a")
+        total_ep = []
+        mix_ep = None
+        filler_ep = None
+        ac_ep = None
+        for tol in ttl_ep:
+            total_ep.append(tol.text)
+        dict = {
+            "filler_id": filler_id,
+            "total_ep": ", ".join(total_ep),
+            "mixed_ep": mix_ep,
+            "filler_ep": filler_ep,
+            "ac_ep": ac_ep
+        }
+        return dict
+    if len(all_ep) == 2:
+        ttl_ep = all_ep[0].findAll("a")
+        fl_ep = all_ep[1].findAll("a")
+        total_ep = []
+        mix_ep = None
+        ac_ep = None
+        filler_ep = []
+        for tol in ttl_ep:
+            total_ep.append(tol.text)
+        for fol in fl_ep:
+            filler_ep.append(fol.text)
+        dict = {
+            "filler_id": filler_id,
+            "total_ep": ", ".join(total_ep),
+            "mixed_ep": mix_ep,
+            "filler_ep": ", ".join(filler_ep),
+            "ac_ep": ac_ep
+        }
+        return dict
+    if len(all_ep) == 3:
+        ttl_ep = all_ep[0].findAll("a")
+        mxl_ep = all_ep[1].findAll("a")
+        fl_ep = all_ep[2].findAll("a")
+        total_ep = []
+        mix_ep = []
+        filler_ep = []
+        ac_ep = None
+        for tol in ttl_ep:
+            total_ep.append(tol.text)
+        for fol in fl_ep:
+            filler_ep.append(fol.text)
+        for mol in mxl_ep:
+            mix_ep.append(mol.text)
+        dict = {
+            "filler_id": filler_id,
+            "total_ep": ", ".join(total_ep),
+            "mixed_ep": ", ".join(mix_ep),
+            "filler_ep": ", ".join(filler_ep),
+            "ac_ep": ac_ep
+        }
+        return dict
+    if len(all_ep) == 4:
+        ttl_ep = all_ep[0].findAll("a")
+        mxl_ep = all_ep[1].findAll("a")
+        fl_ep = all_ep[2].findAll("a")
+        al_ep = all_ep[3].findAll("a")
+        total_ep = []
+        mix_ep = []
+        filler_ep = []
+        ac_ep = []
+        for tol in ttl_ep:
+            total_ep.append(tol.text)
+        for fol in fl_ep:
+            filler_ep.append(fol.text)
+        for mol in mxl_ep:
+            mix_ep.append(mol.text)
+        for aol in al_ep:
+            ac_ep.append(aol.text)
+        dict = {
+            "filler_id": filler_id,
+            "total_ep": ", ".join(total_ep),
+            "mixed_ep": ", ".join(mix_ep),
+            "filler_ep": ", ".join(filler_ep),
+            "ac_ep": ", ".join(ac_ep),
+        }
+        return dict
+
+
+#####         END        #####

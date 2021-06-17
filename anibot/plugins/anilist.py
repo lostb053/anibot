@@ -6,8 +6,7 @@
 """ Search for Anime related Info using Anilist API """
 
 
-import asyncio, requests, time, random
-import re
+import asyncio, requests, time, random, re
 from pyrogram import filters, Client
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, Message
 from .. import ANILIST_CLIENT, ANILIST_REDIRECT_URL, ANILIST_SECRET, HELP_DICT, OWNER, TRIGGERS as trg, BOT_NAME
@@ -21,6 +20,8 @@ from ..utils.db import get_collection
 
 GROUPS = get_collection("GROUPS")
 SFW_GRPS = get_collection("SFW_GROUPS")
+DC = get_collection('DISABLED_CMDS')
+AG = get_collection('AIRING_GROUPS')
 
 no_pic = [
     'https://telegra.ph/file/0d2097f442e816ba3f946.jpg',
@@ -39,8 +40,11 @@ async def anime_cmd(client: Client, message: Message):
     if gid.type in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid.id})):
         await asyncio.gather(GROUPS.insert_one({"id": gid.id, "grp": gid.title}))
         await clog("ANIBOT", f"Bot added to a new group\n\n{gid.username or gid.title}\nID: `{gid.id}`", "NEW_GROUP")
+    find_gc = await DC.find_one({'_id': message.chat.id})
+    if find_gc!=None and 'anime' in find_gc['cmd_list'].split():
+        return
     if len(text)==1:
-        k = await message.reply_text("NameError: 'query' not defined")
+        k = await message.reply_text("Please give a query to search about\nexample: /anime Ao Haru Ride")
         await asyncio.sleep(5)
         return await k.delete()
     query = text[1]
@@ -73,8 +77,11 @@ async def manga_cmd(client: Client, message: Message):
     if gid.type in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid.id})):
         await asyncio.gather(GROUPS.insert_one({"id": gid.id, "grp": gid.title}))
         await clog("ANIBOT", f"Bot added to a new group\n\n{gid.username or gid.title}\nID: `{gid.id}`", "NEW_GROUP")
+    find_gc = await DC.find_one({'_id': message.chat.id})
+    if find_gc!=None and 'manga' in find_gc['cmd_list'].split():
+        return
     if len(text)==1:
-        k = await message.reply_text("NameError: 'query' not defined")
+        k = await message.reply_text("Please give a query to search about\nexample: /manga The teasing master Takagi san")
         await asyncio.sleep(5)
         return await k.delete()
     query = text[1]
@@ -102,8 +109,15 @@ async def manga_cmd(client: Client, message: Message):
 async def character_cmd(client: Client, message: Message):
     """Get Info about a Character"""
     text = message.text.split(" ", 1)
+    gid = message.chat
+    if gid.type in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid.id})):
+        await asyncio.gather(GROUPS.insert_one({"id": gid.id, "grp": gid.title}))
+        await clog("ANIBOT", f"Bot added to a new group\n\n{gid.username or gid.title}\nID: `{gid.id}`", "NEW_GROUP")
+    find_gc = await DC.find_one({'_id': message.chat.id})
+    if find_gc!=None and 'character' in find_gc['cmd_list'].split():
+        return
     if len(text)==1:
-        k = await message.reply_text("NameError: 'query' not defined")
+        k = await message.reply_text("Please give a query to search about\nexample: /character Nezuko")
         await asyncio.sleep(5)
         return await k.delete()
     query = text[1]
@@ -126,8 +140,11 @@ async def character_cmd(client: Client, message: Message):
 @Client.on_message(filters.command(["anilist", f"anilist{BOT_NAME}"], prefixes=trg))
 async def anilist_cmd(client: Client, message: Message):
     text = message.text.split(" ", 1)
+    find_gc = await DC.find_one({'_id': message.chat.id})
+    if find_gc!=None and 'anilist' in find_gc['cmd_list'].split():
+        return
     if len(text)==1:
-        k = await message.reply_text("NameError: 'query' not defined")
+        k = await message.reply_text("Please give a query to search about\nexample: /anilist rezero")
         await asyncio.sleep(5)
         return await k.delete()
     query = text[1]
@@ -155,13 +172,18 @@ async def anilist_cmd(client: Client, message: Message):
 async def flex_cmd(client: Client, message: Message):
     query = message.text.split(" ", 1)
     qry = None
+    find_gc = await DC.find_one({'_id': message.chat.id})
     if "user" in query[0]:
+        if find_gc!=None and 'user' in find_gc['cmd_list'].split():
+            return
         if not len(query)==2:
-            k = await message.reply_text("NameError: 'query' not defined")
+            k = await message.reply_text("Please give an anilist username to search about\nexample: /user Lostb053")
             await asyncio.sleep(5)
             return await k.delete()
         else:
             qry = {"search": query[1]}
+    if find_gc!=None and 'flex' in find_gc['cmd_list'].split():
+        return
     user = message.from_user.id
     if not "user" in query[0] and not (await AUTH_USERS.find_one({"id": user})):
         bot_us = (await client.get_me()).username
@@ -181,6 +203,9 @@ async def flex_cmd(client: Client, message: Message):
 @Client.on_message(filters.command(["top", f"top{BOT_NAME}"], prefixes=trg))
 async def top_tags_cmd(client: Client, message: Message):
     query = message.text.split(" ", 1)
+    find_gc = await DC.find_one({'_id': message.chat.id})
+    if find_gc!=None and 'top' in find_gc['cmd_list'].split():
+        return
     get_tag = "None"
     if len(query)==2:
         get_tag = query[1]
@@ -198,8 +223,11 @@ async def top_tags_cmd(client: Client, message: Message):
 async def airing_cmd(client: Client, message: Message):
     """Get Airing Detail of Anime"""
     text = message.text.split(" ", 1)
+    find_gc = await DC.find_one({'_id': message.chat.id})
+    if find_gc!=None and 'airing' in find_gc['cmd_list'].split():
+        return
     if len(text)==1:
-        k = await message.reply_text("NameError: 'query' not defined")
+        k = await message.reply_text("Please give a query to search about\nexample: /airing Fumetsu no Anata e")
         await asyncio.sleep(5)
         return await k.delete()
     query = text[1]
@@ -237,18 +265,23 @@ async def auth_link_cmd(client, message: Message):
     )
 
 
-@Client.on_message(~filters.private & filters.command(["sfw", f"sfw{BOT_NAME}"], prefixes=trg))
-async def sfw_cmd(client, message: Message):
-    text = "NSFW allowed in this group"
-    if await (SFW_GRPS.find_one({"id": message.chat.id})):
-        text = "NSFW not allowed in this group"
-    await message.reply_text(
-        text = text,
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
-            text="Toggle",
-            callback_data=f"nsfwtogl_{message.chat.id}"
-        )]])
-    )
+@Client.on_message(~filters.private & filters.command(["settings", f"settings{BOT_NAME}"], prefixes=trg))
+async def sfw_cmd(client: Client, message: Message):
+    if message.from_user.id in OWNER or (await client.get_chat_member(message.chat.id, message.from_user.id)).status!='member':
+        text = "This allows you to change group settings\n\nNSFW toggle switches on filtering of 18+ marked content\nAiring notifications notifies about airing of anime in recent"
+        sfw = "NSFW: Allowed"
+        if await (SFW_GRPS.find_one({"id": message.chat.id})):
+            sfw = "NSFW: Not Allowed"
+        notif = "Airing notifications: OFF"
+        if await (AG.find_one({"_id": message.chat.id})):
+            notif = "Airing notifications: ON"
+        await message.reply_text(
+            text = text,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(text=sfw, callback_data=f"settogl_sfw_{message.chat.id}")],
+                [InlineKeyboardButton(text=notif, callback_data=f"settogl_notif_{message.chat.id}")]
+            ])
+        )
 
 
 @Client.on_message(filters.private & filters.command("code", prefixes=trg))
@@ -283,6 +316,9 @@ async def code_cmd(client, message: Message):
 @Client.on_message(filters.command(["me", f"me{BOT_NAME}", "activity", f"activity{BOT_NAME}"], prefixes=trg))
 async def activity_cmd(client: Client, message: Message):
     user = message.from_user.id
+    find_gc = await DC.find_one({'_id': message.chat.id})
+    if find_gc!=None and ('me' or 'activity') in find_gc['cmd_list'].split():
+        return
     if not (await AUTH_USERS.find_one({"id": user})):
         bot_us = (await client.get_me()).username
         return await message.reply_text(
@@ -300,6 +336,9 @@ async def activity_cmd(client: Client, message: Message):
 @Client.on_message(filters.command(["favourites", f"favourites{BOT_NAME}"], prefixes=trg))
 async def favourites_cmd(client: Client, message: Message):
     user = message.from_user.id
+    find_gc = await DC.find_one({'_id': message.chat.id})
+    if find_gc!=None and 'favourites' in find_gc['cmd_list'].split():
+        return
     if not (await AUTH_USERS.find_one({"id": user})):
         bot_us = (await client.get_me()).username
         return await message.reply_text(
@@ -335,7 +374,12 @@ async def logout_cmd(client, message: Message):
 
 @Client.on_message(filters.command(["gettags", f"gettags{BOT_NAME}", "getgenres", f"getgenres{BOT_NAME}"], prefixes=trg))
 async def list_tags_genres_cmd(client, message: Message):
-    msg = (await get_all_tags()) if "gettags" in message.text.split(" ")[0] else (await get_all_genres())
+    find_gc = await DC.find_one({'_id': message.chat.id})
+    if find_gc!=None and "gettags" in message.text.split()[0] and 'gettags' in find_gc['cmd_list'].split():
+        return
+    if find_gc!=None and "getgenres" in message.text.split()[0] and 'getgenres' in find_gc['cmd_list'].split():
+        return
+    msg = (await get_all_tags()) if "gettags" in message.text.split()[0] else (await get_all_genres())
     await message.reply_text(msg)
 
 
@@ -397,22 +441,41 @@ async def top_tags_btn(client, cq: CallbackQuery):
     await cq.edit_message_text(msg, reply_markup=buttons)
 
 
-@Client.on_callback_query(filters.regex(pattern=r"nsfwtogl_(.*)"))
+@Client.on_callback_query(filters.regex(pattern=r"settogl_(.*)"))
 async def nsfw_toggle_btn(client, cq: CallbackQuery):
     k = await cq.message.chat.get_member(cq.from_user.id)
     if cq.from_user.id not in OWNER and str(k.status)!="administrator":
         await cq.answer("You don't have enough permissions to change this!!!", show_alert=True)
         return
     await cq.answer()
-    query = cq.data.split("_")[1]
-    if await (SFW_GRPS.find_one({"id": int(query)})):
-        await asyncio.gather(SFW_GRPS.find_one_and_delete({"id": int(query)}))
-        text = "NSFW allowed in this group"
+    query = cq.data.split("_")
+    if await (SFW_GRPS.find_one({"id": int(query[2])})):
+        sfw = "NSFW: Not Allowed"
     else:
-        await asyncio.gather(SFW_GRPS.insert_one({"id": int(query)}))
-        text = "NSFW not allowed in this group"
-    btns = InlineKeyboardMarkup([[InlineKeyboardButton(text="Toggle", callback_data=f"nsfwtogl_{query}")]])
-    await cq.edit_message_text(text, reply_markup=btns)
+        sfw = "NSFW: Allowed"
+    if await (AG.find_one({"_id": int(query[2])})):
+        notif = "Airing notifications: ON"
+    else:
+        notif = "Airing notifications: OFF"
+    if query[1]=="sfw":
+        if await (SFW_GRPS.find_one({"id": int(query[2])})):
+            await asyncio.gather(SFW_GRPS.find_one_and_delete({"id": int(query[2])}))
+            sfw = "NSFW: Allowed"
+        else:
+            await asyncio.gather(SFW_GRPS.insert_one({"id": int(query[2])}))
+            sfw = "NSFW: Not Allowed"
+    if query[1]=="notif":
+        if await (AG.find_one({"_id": int(query[2])})):
+            await asyncio.gather(AG.find_one_and_delete({"_id": int(query[2])}))
+            notif = "Airing notifications: OFF"
+        else:
+            await asyncio.gather(AG.insert_one({"_id": int(query[2])}))
+            notif = "Airing notifications: ON"
+    btns = InlineKeyboardMarkup([
+        [InlineKeyboardButton(text=sfw, callback_data=f"settogl_sfw_{query[2]}")],
+        [InlineKeyboardButton(text=notif, callback_data=f"settogl_notif_{query[2]}")]
+    ])
+    await cq.edit_message_reply_markup(reply_markup=btns)
 
 
 @Client.on_callback_query(filters.regex(pattern=r"myacc_(.*)"))
@@ -685,52 +748,3 @@ async def featured_in_switch_btn(client, cq: CallbackQuery):
     button.append([InlineKeyboardButton(text=f"{bt}", callback_data=f"{reqb}_{idm}_0_{qry}_{pg}_{auth}_{user}")])
     button.append([InlineKeyboardButton(text="Back", callback_data=f"page_CHARACTER_{qry}_{pg}_{auth}_{user}")])
     await cq.edit_message_media(InputMediaPhoto(pic, caption=msg), reply_markup=InlineKeyboardMarkup(button))
-
-
-HELP_DICT["anime"] = """Use /anime cmd to get info on specific anime using
-keywords (anime name) or Anilist ID
-(Don't confuse with anilist)
-
-This cmd includes buttons for prequel and sequel related to anime searched (if any),
-while anilist can scroll between animes with similar names
-
-**Usage:**
-        `/anime Fumetsu No Anata E`
-        `!anime Higehiro`
-        `/anime 98385`"""
-HELP_DICT["anilist"] = """Use /anilist cmd to get info on all animes related to search query
-(Don't confuse with anime)
-
-This cmd helps you choose between animes with similar names,
-while anime gives info on single anime
-
-**Usage:**
-        `/anilist rezero`
-        `!anilist hello world`"""
-HELP_DICT["character"] = """Use /character cmd to get info on characters
-
-**Usage:**
-        `/character Hanabi`
-        `!character tachibana`"""
-HELP_DICT["manga"] = """Use /manga cmd to get info on mangas
-
-**Usage:**
-        `/manga Karakai Jouzu no Takagi San`
-        `!manga Ao Haru Ride`"""
-HELP_DICT["airing"] = """Use /airing cmd to get info on airing status of anime
-
-**Usage:**
-        `/airing Nagatoro`
-        `!airing Seijo no Maryoku wa Bannou desu`"""
-HELP_DICT["auth"] = "Use /auth or !auth cmd to authorize your Anilist account with bot"
-HELP_DICT["flex"] = "Use /flex or !flex cmd to get your anilist stats"
-HELP_DICT["logout"] = "Use /logout or !logout cmd to revoke authorization"
-HELP_DICT["user"] = """Use /user cmd to get info on a user
-
-**Usage:**
-        `/user lostb053`
-        `!user lostb053`"""
-HELP_DICT["sfw"] = "Use /sfw cmd to toggle nsfw settings in group"
-HELP_DICT["me"] = "Use /me or !me cmd to get your anilist recent activity\nCan also use /activity or !activity"
-HELP_DICT["favourites"] = "Use /favourites or !favourites cmd to get your anilist favourites"
-HELP_DICT["top"] = "Use /top cmd to lookup top animes of a genre/tag or from all animes\nTo get a list of available tags or genres send /gettags or /getgenres"
