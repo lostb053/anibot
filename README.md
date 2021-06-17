@@ -8,9 +8,11 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * Favourites
 * Anilist Activity
 * Update Anilist entry using bot
+* Anime fillers from [animefillerslist](https://www.animefillerlist.com)
+* Anime Airing notifications from [LiveChart](https://livechart.me)
 * Anime Reverse Search Powered by [tracemoepy](https://github.com/dragsama/tracemoepy)
 * Watch Order from [Chiaki](https://chiaki.site/) using [web api](https://chiaki.vercel.app)
-<h3>Also can add to grps and enable sfw lock to prevent members from looking up hentai and 18+ rated stuff</h3>
+<h3>Also can add to grps and enable sfw lock to prevent members from looking up hentai and 18+ rated stuff<br>Also includes command disabling</h3>
 
 
 ## Requirements
@@ -34,16 +36,20 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
  /airing - Fetches info on airing data for anime
  /flex - Fetches anilist info of an authorised user
  /user - Fetches anilist info as per query
- /scheduled - Fetches scheduled animes
+ /schedule - Fetches scheduled animes
  /auth - Fetches info on how to authorize anilist account
  /code - Generates access token from the authorization code from authorization website
  /logout - removes authorization
- /sfw - To toggle nsfw lock in groups
+ /settings - To toggle nsfw lock and airing notifications in groups
  /top - to retrieve top animes for a genre or tag
  /reverse - Reverse search powered by tracemoepy
  /watch - Fetches watch order for anime series
  /feedback - contact bot owner or main support grp at @hanabi_support
  /me or /activity - Get Anilist recent activity
+ /fillers - To get list of anime fillers
+ /disable - To disable a command in group
+ /enable - To enable a command in group
+ /disabled - To list disabled commands in a group
  /favourites - Get Anilist favourites
  /gettags - Get list of available Tags
  /getgenres - Get list of available Genres
@@ -55,6 +61,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
  /eval - Runs python code (code must start right after cmd like "/eval print('UwU')")
  /term - Runs the code in terminal
  /stats - Gibs data on bot such as no. of grps/users and ping
+ /dbcleanup - Cleans useless entries in database
 ```
 
 
