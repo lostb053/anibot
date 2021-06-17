@@ -548,14 +548,18 @@ query{
 """
 
 
-async def get_all_tags():
+async def get_all_tags(text: str = None):
     vars_ = {}
     result = await return_json_senpai(GET_TAGS, vars_, auth=False, user=None)
     msg = "**Tags List:**\n\n`"
     kek = []
     for i in result['data']['MediaTagCollection']:
-        if str(i['isAdult'])=='False':
-            kek.append(i['name'])
+        if text != None and 'nsfw' in text:
+            if str(i['isAdult'])!='False':
+                kek.append(i['name'])
+        else:
+            if str(i['isAdult'])=='False':
+                kek.append(i['name'])
     msg += ", ".join(kek)
     msg += "`"
     return msg
@@ -596,6 +600,7 @@ async def get_top_animes(gnr: str, page, user):
         query = ALLTOP_QUERY
         vars_ = {"page": int(page)}
         msg = f"Top animes:\n\n"
+    nsfw = False
     result = await return_json_senpai(query, vars_, auth=False, user=user)
     if len(result['data']['Page']['media'])==0:
         query = TOPT_QUERY
@@ -603,6 +608,8 @@ async def get_top_animes(gnr: str, page, user):
         result = await return_json_senpai(query, vars_, auth=False, user=user)
         if len(result['data']['Page']['media'])==0:
             return [f"No results Found"]
+        nsls = await get_all_tags('nsfw')
+        nsfw = True if gnr.lower() in nsls.lower() else False
     data = result["data"]["Page"]
     for i in data['media']:
         msg += f"⚬ `{i['title']['romaji']}`\n"
@@ -618,7 +625,7 @@ async def get_top_animes(gnr: str, page, user):
             InlineKeyboardButton("Prev", callback_data=f"topanimu_{gnr}_{int(page)-1}_{user}"),
             InlineKeyboardButton("Next", callback_data=f"topanimu_{gnr}_{int(page)+1}_{user}")
         ])
-    return msg, InlineKeyboardMarkup(btn)
+    return [msg, nsfw], InlineKeyboardMarkup(btn) if not len(btn)==0 else ""
 
 
 async def get_user_favourites(id_, user, req, page, sighs):

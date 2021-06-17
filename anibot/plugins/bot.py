@@ -3,7 +3,7 @@ from datetime import datetime as dt
 from natsort import natsorted
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
-from pyrogram.errors import ChannelInvalid as ci, ChannelPrivate as cp, PeerIdInvalid as pi
+from pyrogram.errors import ChannelInvalid as ci, ChannelPrivate as cp, PeerIdInvalid as pi, FloodWait as fw
 from .. import BOT_NAME, TRIGGERS as trg, OWNER, HELP_DICT, anibot
 from ..utils.db import get_collection
 from ..utils.helper import AUTH_USERS, clog, check_user
@@ -14,6 +14,7 @@ USERS = get_collection("USERS")
 GROUPS = get_collection("GROUPS")
 SFW_GROUPS = get_collection("SFW_GROUPS")
 DC = get_collection('DISABLED_CMDS')
+AG = get_collection('AIRING_GROUPS')
 CMD = [
     'anime',
     'anilist',
@@ -56,7 +57,7 @@ async def en_dis__able_cmd(client: Client, message: Message):
                     await asyncio.sleep(5)
                     await x.delete()
                     return
-                await asyncio.gather(DC.insert_one({'_id': message.chat.id, 'cmd_list': cmd[1]}))
+                await DC.insert_one({'_id': message.chat.id, 'cmd_list': cmd[1]})
                 x = await message.reply_text("Command disabled!!!")
                 await asyncio.sleep(5)
                 await x.delete()
@@ -66,7 +67,7 @@ async def en_dis__able_cmd(client: Client, message: Message):
                 if set(cmd[1].split()).issubset(ocls.split()):
                     if enable:
                         if len(ocls.split())==1:
-                            await asyncio.gather(DC.delete_one({'_id': message.chat.id}))
+                            await DC.delete_one({'_id': message.chat.id})
                             x = await message.reply_text("Command enabled!!!")
                             await asyncio.sleep(5)
                             await x.delete()
@@ -93,7 +94,7 @@ async def en_dis__able_cmd(client: Client, message: Message):
                             if i not in lsncls:
                                 lsncls.append(i)
                         ncls = " ".join(lsncls)
-                await asyncio.gather(DC.update_one({'_id': message.chat.id}, {'$set': {'cmd_list': ncls}}))
+                await DC.update_one({'_id': message.chat.id}, {'$set': {'cmd_list': ncls}})
                 x = await message.reply_text(f"Command {'dis' if enable==False else 'en'}abled!!!")
                 await asyncio.sleep(5)
                 await x.delete()
@@ -130,10 +131,12 @@ async def db_cleanup(client: Client, message: Message):
             await client.get_chat(i['id'])
         except cp:
             count += 1
-            await asyncio.gather(GROUPS.find_one_and_delete({'id': i['id']}))
+            await GROUPS.find_one_and_delete({'id': i['id']})
         except ci:
             count += 1
-            await asyncio.gather(GROUPS.find_one_and_delete({'id': i['id']}))
+            await GROUPS.find_one_and_delete({'id': i['id']})
+        except fw:
+            await asyncio.sleep(fw.x + 5)
     await asyncio.sleep(5)
     await x.edit_text("Checking 2nd collection!!!")
     async for i in SFW_GROUPS.find():
@@ -142,10 +145,12 @@ async def db_cleanup(client: Client, message: Message):
             await client.get_chat(i['id'])
         except cp:
             count += 1
-            await asyncio.gather(SFW_GROUPS.find_one_and_delete({'id': i['id']}))
+            await SFW_GROUPS.find_one_and_delete({'id': i['id']})
         except ci:
             count += 1
-            await asyncio.gather(SFW_GROUPS.find_one_and_delete({'id': i['id']}))
+            await SFW_GROUPS.find_one_and_delete({'id': i['id']})
+        except fw:
+            await asyncio.sleep(fw.x + 5)
     await asyncio.sleep(5)
     await x.edit_text("Checking 3rd collection!!!")
     async for i in DC.find():
@@ -154,17 +159,37 @@ async def db_cleanup(client: Client, message: Message):
             await client.get_chat(i['_id'])
         except cp:
             count += 1
-            await asyncio.gather(DC.find_one_and_delete({'id': i['_id']}))
+            await DC.find_one_and_delete({'id': i['_id']})
         except ci:
             count += 1
-            await asyncio.gather(DC.find_one_and_delete({'id': i['_id']}))
+            await DC.find_one_and_delete({'id': i['_id']})
+        except fw:
+            await asyncio.sleep(fw.x + 5)
+    await asyncio.sleep(5)
+    await x.edit_text("Checking 4th collection!!!")
+    async for i in AG.find():
+        await asyncio.sleep(2)
+        try:
+            await client.get_chat(i['_id'])
+        except cp:
+            count += 1
+            await AG.find_one_and_delete({'_id': i['_id']})
+        except ci:
+            count += 1
+            await AG.find_one_and_delete({'_id': i['_id']})
+        except fw:
+            await asyncio.sleep(fw.x + 5)
+    await asyncio.sleep(5)
+    await x.edit_text("Checking 5th collection!!!")
     async for i in AUTH_USERS.find():
         await asyncio.sleep(2)
         try:
             await client.get_users(i['id'])
         except pi:
             count += 1
-            await asyncio.gather(AUTH_USERS.find_one_and_delete({'id': i['id']}))
+            await AUTH_USERS.find_one_and_delete({'id': i['id']})
+        except fw:
+            await asyncio.sleep(fw.x + 5)
     if count == 0:
         msg = f"""Database seems to be accurate, no changes to be made!!!
 
@@ -203,7 +228,7 @@ async def start_(client: Client, message: Message):
     if message.chat.id==message.from_user.id:
         user = message.from_user
         if not (user.id in OWNER) and not (await USERS.find_one({"id": user.id})):
-            await asyncio.gather(USERS.insert_one({"id": user.id, "user": user.first_name}))
+            await USERS.insert_one({"id": user.id, "user": user.first_name})
             await clog("ANIBOT", f"New User started bot\n\n[{user.first_name}](tg://user?id={user.id})\nID: `{user.id}`", "NEW_USER")
         if len(message.text.split())!=1:
             deep_cmd = message.text.split()[1]
@@ -228,7 +253,7 @@ If you wish to use me in a group start me by /start{BOT_NAME} command after addi
     else:
         gid = message.chat
         if not await (GROUPS.find_one({"id": gid.id})):
-            await asyncio.gather(GROUPS.insert_one({"id": gid.id, "grp": gid.title}))
+            await GROUPS.insert_one({"id": gid.id, "grp": gid.title})
             await clog("ANIBOT", f"Bot added to a new group\n\n{gid.username or gid.title}\nID: `{gid.id}`", "NEW_GROUP")
         await client.send_message(message.chat.id, text="Bot seems online!!!")
 

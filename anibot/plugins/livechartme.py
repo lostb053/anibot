@@ -14,7 +14,7 @@ async def livechart_parser():
     print('Parsing data from Livechart.me')
     k = bs(requests.get(url).text, features="html.parser")
     if (await A.find_one())==None:
-        await asyncio.gather(A.insert_one({'_id': str(k.find('item').find('title'))}))
+        await A.insert_one({'_id': str(k.find('item').find('title'))})
         return
     count = 0
     for i in k.findAll("item"):
@@ -28,8 +28,8 @@ async def livechart_parser():
                 await Client.send_message(anibot, id_['_id'], str(i.find('title'))+' just aired', reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("More Info", url=re.sub(r'<.*?>(.*)<.*?>', r'\1', str(i.find('guid'))))]]))
         count += 1
     if count!=0:
-        await asyncio.gather(A.drop())
-        await asyncio.gather(A.insert_one({'_id': str(k.find('item').find('title'))}))
+        await A.drop()
+        await A.insert_one({'_id': str(k.find('item').find('title'))})
 
 
 scheduler = AsyncIOScheduler()

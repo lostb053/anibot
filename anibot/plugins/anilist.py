@@ -9,6 +9,7 @@
 import asyncio, requests, time, random, re
 from pyrogram import filters, Client
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, Message
+from pyrogram.errors import UserNotParticipant
 from .. import ANILIST_CLIENT, ANILIST_REDIRECT_URL, ANILIST_SECRET, HELP_DICT, OWNER, TRIGGERS as trg, BOT_NAME
 from ..utils.data_parser import (
     get_all_genres, get_all_tags, get_top_animes, get_user_activity, get_user_favourites, toggle_favourites,
@@ -38,7 +39,7 @@ async def anime_cmd(client: Client, message: Message):
     text = message.text.split(" ", 1)
     gid = message.chat
     if gid.type in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid.id})):
-        await asyncio.gather(GROUPS.insert_one({"id": gid.id, "grp": gid.title}))
+        await GROUPS.insert_one({"id": gid.id, "grp": gid.title})
         await clog("ANIBOT", f"Bot added to a new group\n\n{gid.username or gid.title}\nID: `{gid.id}`", "NEW_GROUP")
     find_gc = await DC.find_one({'_id': message.chat.id})
     if find_gc!=None and 'anime' in find_gc['cmd_list'].split():
@@ -75,7 +76,7 @@ async def manga_cmd(client: Client, message: Message):
     text = message.text.split(" ", 1)
     gid = message.chat
     if gid.type in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid.id})):
-        await asyncio.gather(GROUPS.insert_one({"id": gid.id, "grp": gid.title}))
+        await GROUPS.insert_one({"id": gid.id, "grp": gid.title})
         await clog("ANIBOT", f"Bot added to a new group\n\n{gid.username or gid.title}\nID: `{gid.id}`", "NEW_GROUP")
     find_gc = await DC.find_one({'_id': message.chat.id})
     if find_gc!=None and 'manga' in find_gc['cmd_list'].split():
@@ -111,7 +112,7 @@ async def character_cmd(client: Client, message: Message):
     text = message.text.split(" ", 1)
     gid = message.chat
     if gid.type in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid.id})):
-        await asyncio.gather(GROUPS.insert_one({"id": gid.id, "grp": gid.title}))
+        await GROUPS.insert_one({"id": gid.id, "grp": gid.title})
         await clog("ANIBOT", f"Bot added to a new group\n\n{gid.username or gid.title}\nID: `{gid.id}`", "NEW_GROUP")
     find_gc = await DC.find_one({'_id': message.chat.id})
     if find_gc!=None and 'character' in find_gc['cmd_list'].split():
@@ -215,8 +216,10 @@ async def top_tags_cmd(client: Client, message: Message):
         k = await message.reply_text(result[0])
         await asyncio.sleep(5)
         return await k.delete()
+    if await (SFW_GRPS.find_one({"id": message.chat.id})) and str(result[0][1])=="True":
+        return await message.reply_text('No nsfw stuff allowed in this group!!!')
     msg, buttons = result
-    await client.send_message(message.chat.id, msg, reply_markup=buttons)
+    await client.send_message(message.chat.id, msg[0], reply_markup=buttons if buttons!='' else None)
 
 
 @Client.on_message(filters.command(["airing", f"airing{BOT_NAME}"], prefixes=trg))
@@ -307,7 +310,7 @@ async def code_cmd(client, message: Message):
         return await message.reply_text("You have already yourself\nIf you wish to logout send /logout")
     response: dict = requests.post("https://anilist.co/api/v2/oauth/token", headers=headers, json=json).json()
     if response.get("access_token"):
-        await asyncio.gather(AUTH_USERS.insert_one({"id": message.from_user.id, "token": response.get("access_token")}))
+        await AUTH_USERS.insert_one({"id": message.from_user.id, "token": response.get("access_token")})
         await message.reply_text("Authorization Successfull!!!" )
     else:
         await message.reply_text("Please verify code, or get new one from website!!!")
@@ -366,7 +369,7 @@ async def favourites_cmd(client: Client, message: Message):
 @Client.on_message(filters.private & filters.command("logout", prefixes=trg))
 async def logout_cmd(client, message: Message):
     if (await AUTH_USERS.find_one({"id": message.from_user.id})):
-        asyncio.gather(AUTH_USERS.find_one_and_delete({"id": message.from_user.id}))
+        AUTH_USERS.find_one_and_delete({"id": message.from_user.id})
         await message.reply_text("Logged out!!!")
     else:
         await message.reply_text("You are not authorized to begin with!!!")
@@ -379,7 +382,9 @@ async def list_tags_genres_cmd(client, message: Message):
         return
     if find_gc!=None and "getgenres" in message.text.split()[0] and 'getgenres' in find_gc['cmd_list'].split():
         return
-    msg = (await get_all_tags()) if "gettags" in message.text.split()[0] else (await get_all_genres())
+    if await (SFW_GRPS.find_one({"id": message.chat.id})) and 'nsfw' in message.text:
+        return await message.reply_text('No nsfw allowed here!!!')
+    msg = (await get_all_tags(message.text)) if "gettags" in message.text.split()[0] else (await get_all_genres())
     await message.reply_text(msg)
 
 
@@ -437,14 +442,17 @@ async def top_tags_btn(client, cq: CallbackQuery):
     await cq.answer()
     kek, gnr, page, user = cq.data.split("_")
     result = await get_top_animes(gnr, page=page, user=user)
-    msg, buttons = result[0], result[1]
+    msg, buttons = result[0][0], result[1]
     await cq.edit_message_text(msg, reply_markup=buttons)
 
 
 @Client.on_callback_query(filters.regex(pattern=r"settogl_(.*)"))
 async def nsfw_toggle_btn(client, cq: CallbackQuery):
-    k = await cq.message.chat.get_member(cq.from_user.id)
-    if cq.from_user.id not in OWNER and str(k.status)!="administrator":
+    try:
+        k = await cq.message.chat.get_member(cq.from_user.id)
+    except UserNotParticipant:
+        return
+    if cq.from_user.id not in OWNER and str(k.status)=="member":
         await cq.answer("You don't have enough permissions to change this!!!", show_alert=True)
         return
     await cq.answer()
@@ -459,17 +467,17 @@ async def nsfw_toggle_btn(client, cq: CallbackQuery):
         notif = "Airing notifications: OFF"
     if query[1]=="sfw":
         if await (SFW_GRPS.find_one({"id": int(query[2])})):
-            await asyncio.gather(SFW_GRPS.find_one_and_delete({"id": int(query[2])}))
+            await SFW_GRPS.find_one_and_delete({"id": int(query[2])})
             sfw = "NSFW: Allowed"
         else:
-            await asyncio.gather(SFW_GRPS.insert_one({"id": int(query[2])}))
+            await SFW_GRPS.insert_one({"id": int(query[2])})
             sfw = "NSFW: Not Allowed"
     if query[1]=="notif":
         if await (AG.find_one({"_id": int(query[2])})):
-            await asyncio.gather(AG.find_one_and_delete({"_id": int(query[2])}))
+            await AG.find_one_and_delete({"_id": int(query[2])})
             notif = "Airing notifications: OFF"
         else:
-            await asyncio.gather(AG.insert_one({"_id": int(query[2])}))
+            await AG.insert_one({"_id": int(query[2])})
             notif = "Airing notifications: ON"
     btns = InlineKeyboardMarkup([
         [InlineKeyboardButton(text=sfw, callback_data=f"settogl_sfw_{query[2]}")],
