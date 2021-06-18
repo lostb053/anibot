@@ -181,7 +181,7 @@ async def flex_cmd(client: Client, message: Message):
     if "user" in query[0]:
         if find_gc!=None and 'user' in find_gc['cmd_list'].split():
             return
-        if not len(query)==2:
+        if len(query) != 2:
             k = await message.reply_text("Please give an anilist username to search about\nexample: /user Lostb053")
             await asyncio.sleep(5)
             return await k.delete()
@@ -190,7 +190,9 @@ async def flex_cmd(client: Client, message: Message):
     if find_gc!=None and 'flex' in find_gc['cmd_list'].split():
         return
     user = message.from_user.id
-    if not "user" in query[0] and not (await AUTH_USERS.find_one({"id": user})):
+    if "user" not in query[0] and not (
+        await AUTH_USERS.find_one({"id": user})
+    ):
         bot_us = (await client.get_me()).username
         return await message.reply_text(
             "Please connect your account first to use this cmd",
@@ -691,7 +693,7 @@ async def additional_info_btn(client: Client, cq: CallbackQuery):
         button.append([InlineKeyboardButton(text="View spoiler", url=f"https://t.me/{bot}/?start=des_{ctgry}_{query}")])
     if len(result) > 1000:
         result = result[:940] + "..."
-        if spoiler==False:
+        if not spoiler:
             result += "\n\nFor more info click below given button"
             button.append([InlineKeyboardButton(text="More Info", url=f"https://t.me/{bot}/?start=des_{ctgry}_{query}")])
     msg = f"{info}:\n\n{result}"
@@ -714,9 +716,9 @@ async def featured_in_btn(client, cq: CallbackQuery):
     if result[0]==False:
         result = await get_featured_in_lists(int(idm), "MAN")
         req = None
-        if result[0]==False:
-            await cq.answer("No Data Available!!!")
-            return
+    if result[0]==False:
+        await cq.answer("No Data Available!!!")
+        return
     [msg, total], pic = result
     button = []
     totalpg, kek = divmod(total, 15)

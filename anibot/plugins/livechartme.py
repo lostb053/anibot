@@ -15,7 +15,7 @@ AIRING_GRPS = get_collection('AIRING_GROUPS')
 async def livechart_parser():
     print('Parsing data from Livechart.me')
     k = bs(requests.get(url).text, features="html.parser")
-    if (await A.find_one())==None:
+    if await A.find_one() is None:
         await A.insert_one({'_id': str(k.find('item').find('title'))})
         return
     count = 0

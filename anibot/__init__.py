@@ -14,7 +14,7 @@ LOG_CHANNEL_ID = int(os.environ.get("LOG_CHANNEL_ID"))
 OWNER = list(filter(lambda x: x, map(int, os.environ.get("OWNER_ID", "1005170481 972029825").split())))  ## sudos can be included
 
 DOWN_PATH = "anibot/downloads/"
-HELP_DICT = dict()
+HELP_DICT = {}
 
 plugins = dict(root="anibot/plugins")
 anibot = Client("anibot", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH, plugins=plugins)
@@ -84,4 +84,4 @@ Use /me or !me cmd to get your anilist recent activity
 Can also use /activity or !activity
 
 Use /favourites or !favourites cmd to get your anilist favourites
-"""
+HELP_DICT["Oauth"] = """

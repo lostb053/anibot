@@ -558,9 +558,8 @@ async def get_all_tags(text: str = None):
         if text is not None and 'nsfw' in text:
             if str(i['isAdult'])!='False':
                 kek.append(i['name'])
-        else:
-            if str(i['isAdult'])=='False':
-                kek.append(i['name'])
+        elif str(i['isAdult'])=='False':
+            kek.append(i['name'])
     msg += ", ".join(kek)
     msg += "`"
     return msg
@@ -610,7 +609,7 @@ async def get_top_animes(gnr: str, page, user):
         if len(result['data']['Page']['media'])==0:
             return [f"No results Found"]
         nsls = await get_all_tags('nsfw')
-        nsfw = True if gnr.lower() in nsls.lower() else False
+        nsfw = gnr.lower() in nsls.lower()
     data = result["data"]["Page"]
     for i in data['media']:
         msg += f"⚬ `{i['title']['romaji']}`\n"
@@ -626,7 +625,7 @@ async def get_top_animes(gnr: str, page, user):
             InlineKeyboardButton("Prev", callback_data=f"topanimu_{gnr}_{int(page)-1}_{user}"),
             InlineKeyboardButton("Next", callback_data=f"topanimu_{gnr}_{int(page)+1}_{user}")
         ])
-    return [msg, nsfw], InlineKeyboardMarkup(btn) if not len(btn)==0 else ""
+    return [msg, nsfw], InlineKeyboardMarkup(btn) if btn else ""
 
 
 async def get_user_favourites(id_, user, req, page, sighs):
@@ -660,9 +659,9 @@ async def get_featured_in_lists(idm, req, auth: bool = False, user: int = None, 
     vars_ = {"id": int(idm)}
     result = await return_json_senpai(LS_INFO_QUERY, vars_, auth=auth, user=user)
     data = result["data"]["Character"]["media"]["nodes"]
+    out_ = []
     if req == "ANI":
         out = "ANIMES:\n\n"
-        out_ = []
         for ani in data:
             k = ani["title"]["english"] or ani["title"]["romaji"]
             kk = ani["type"]
@@ -670,7 +669,6 @@ async def get_featured_in_lists(idm, req, auth: bool = False, user: int = None, 
                 out_.append(f"• __{k}__\n")
     else:
         out = "MANGAS:\n\n"
-        out_ = []
         for ani in data:
             k = ani["title"]["english"] or ani["title"]["romaji"]
             kk = ani["type"]
@@ -707,17 +705,20 @@ async def get_additional_info(idm, req, ctgry, auth: bool = False, user: int = N
         synopsis = data.get("description")
         return (pic if ctgry == "ANI" else data["image"]["large"]), synopsis
     elif req == "char":
-        charlist = []
-        for char in data["characters"]["nodes"]:
-            charlist.append(f"• {char['name']['full']}")
+        charlist = [
+            f"• {char['name']['full']}" for char in data["characters"]["nodes"]
+        ]
+
         chrctrs = ("\n").join(charlist)
         charls = f"`{chrctrs}`" if len(charlist) != 0 else ""
         return pic, charls
     else:
         prqlsql = data.get("relations").get("edges")
-        ps = ""
-        for i in prqlsql:
-            ps += f'• {i["node"]["title"]["romaji"]} `{i["relationType"]}`\n'
+        ps = "".join(
+            f'• {i["node"]["title"]["romaji"]} `{i["relationType"]}`\n'
+            for i in prqlsql
+        )
+
         return pic, ps
 
 
@@ -759,7 +760,7 @@ async def get_anime(vars_, auth: bool = False, user: int = None):
     user_data = ""
     in_ls = False
     in_ls_id = ""
-    if auth is True:
+    if auth:
         in_list = data.get("mediaListEntry")
         if in_list!=None:
             in_ls = True
@@ -810,10 +811,7 @@ async def get_anime(vars_, auth: bool = False, user: int = None):
         ep_ = list(str(eps))
         x = ep_.pop()
         th = "th"
-        if len(ep_) >= 1:
-            if ep_.pop() != "1":
-                th = pos_no(x)
-        else:
+        if ep_ and ep_.pop() != "1" or not ep_:
             th = pos_no(x)
         air_on += f" | {eps}{th} eps"
     if air_on  is None:
@@ -866,7 +864,7 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
     in_ls = False
     in_ls_id = ""
     user_data = ""
-    if auth is True:
+    if auth:
         in_list = data.get("mediaListEntry")
         if in_list!=None:
             in_ls = True
@@ -912,10 +910,7 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
         ep_ = list(str(eps))
         x = ep_.pop()
         th = "th"
-        if len(ep_) >= 1:
-            if ep_.pop() != "1":
-                th = pos_no(x)
-        else:
+        if ep_ and ep_.pop() != "1" or not ep_:
             th = pos_no(x)
         air_on += f" | {eps}{th} eps"
     if air_on  is None:
@@ -990,7 +985,7 @@ async def get_manga(qdb, page, auth: bool = False, user: int = None):
     in_ls = False
     in_ls_id = ""
     user_data = ""
-    if auth is True:
+    if auth:
         in_list = data.get("mediaListEntry")
         if in_list!=None:
             in_ls = True
@@ -1037,7 +1032,7 @@ async def get_airing(vars_, auth: bool = False, user: int = None):
     in_ls = False
     in_ls_id = ""
     user_data = ""
-    if auth is True:
+    if auth:
         in_list = data.get("mediaListEntry")
         if in_list!=None:
             in_ls = True
@@ -1077,7 +1072,10 @@ async def toggle_favourites(id_: int, media: str, user: int):
 
 async def get_user(vars_, req, user):
     query = USER_QRY if "user" in req else VIEWER_QRY
-    k = await return_json_senpai(query=query, vars=vars_, auth=False if "user" in req else True, user=int(user))
+    k = await return_json_senpai(
+        query=query, vars=vars_, auth="user" not in req, user=int(user)
+    )
+
     error = k.get("errors")
     if error:
         error_sts = error[0].get("message")
@@ -1100,9 +1098,9 @@ Total Manga Read: `{manga['count']}`
 Total Chapters Read: `{manga['chaptersRead']}`
 Total Volumes Read: `{manga['volumesRead']}`
 Average Score: `{manga['meanScore']}`
-""" 
+"""
     btn = []
-    if not "user" in req:
+    if "user" not in req:
         btn.append([
             InlineKeyboardButton("Favourites", callback_data=f"myfavs_{data['id']}_yes_{user}"),
             InlineKeyboardButton("Activity", callback_data=f"myacc_{data['id']}_{user}")
@@ -1165,9 +1163,7 @@ def get_wols(x: str):
 def get_wo(x: int, page: int):
     data = requests.get(f"https://chiaki.vercel.app/get2?group_id={x}").json()
     msg = "Watch order for the given query is:\n\n"
-    out = []
-    for i in data:
-        out.append(f"{i['index']}. `{i['name']}`\n")
+    out = [f"{i['index']}. `{i['name']}`\n" for i in data]
     total = len(out)
     for _ in range(50*page):
         out.pop(0)
@@ -1189,12 +1185,12 @@ def search_filler(query):
             yum = jk.a["href"].split("/")[-1]
             cum = jk.text
             index[cum] = yum
-    ret = {}
     keys = list(index.keys())
-    for i in range(len(keys)):
-        if query.lower() in keys[i].lower():
-            ret[keys[i]] = index[keys[i]]
-    return ret
+    return {
+        keys[i]: index[keys[i]]
+        for i in range(len(keys))
+        if query.lower() in keys[i].lower()
+    }
 
 
 def parse_filler(filler_id):
@@ -1205,12 +1201,10 @@ def parse_filler(filler_id):
     all_ep = div.find_all("span", attrs={"class": "Episodes"})
     if len(all_ep) == 1:
         ttl_ep = all_ep[0].findAll("a")
-        total_ep = []
         mix_ep = None
         filler_ep = None
         ac_ep = None
-        for tol in ttl_ep:
-            total_ep.append(tol.text)
+        total_ep = [tol.text for tol in ttl_ep]
         dict = {
             "filler_id": filler_id,
             "total_ep": ", ".join(total_ep),
@@ -1222,14 +1216,10 @@ def parse_filler(filler_id):
     if len(all_ep) == 2:
         ttl_ep = all_ep[0].findAll("a")
         fl_ep = all_ep[1].findAll("a")
-        total_ep = []
         mix_ep = None
         ac_ep = None
-        filler_ep = []
-        for tol in ttl_ep:
-            total_ep.append(tol.text)
-        for fol in fl_ep:
-            filler_ep.append(fol.text)
+        total_ep = [tol.text for tol in ttl_ep]
+        filler_ep = [fol.text for fol in fl_ep]
         dict = {
             "filler_id": filler_id,
             "total_ep": ", ".join(total_ep),
@@ -1242,16 +1232,10 @@ def parse_filler(filler_id):
         ttl_ep = all_ep[0].findAll("a")
         mxl_ep = all_ep[1].findAll("a")
         fl_ep = all_ep[2].findAll("a")
-        total_ep = []
-        mix_ep = []
-        filler_ep = []
         ac_ep = None
-        for tol in ttl_ep:
-            total_ep.append(tol.text)
-        for fol in fl_ep:
-            filler_ep.append(fol.text)
-        for mol in mxl_ep:
-            mix_ep.append(mol.text)
+        total_ep = [tol.text for tol in ttl_ep]
+        filler_ep = [fol.text for fol in fl_ep]
+        mix_ep = [mol.text for mol in mxl_ep]
         dict = {
             "filler_id": filler_id,
             "total_ep": ", ".join(total_ep),
@@ -1265,18 +1249,10 @@ def parse_filler(filler_id):
         mxl_ep = all_ep[1].findAll("a")
         fl_ep = all_ep[2].findAll("a")
         al_ep = all_ep[3].findAll("a")
-        total_ep = []
-        mix_ep = []
-        filler_ep = []
-        ac_ep = []
-        for tol in ttl_ep:
-            total_ep.append(tol.text)
-        for fol in fl_ep:
-            filler_ep.append(fol.text)
-        for mol in mxl_ep:
-            mix_ep.append(mol.text)
-        for aol in al_ep:
-            ac_ep.append(aol.text)
+        total_ep = [tol.text for tol in ttl_ep]
+        filler_ep = [fol.text for fol in fl_ep]
+        mix_ep = [mol.text for mol in mxl_ep]
+        ac_ep = [aol.text for aol in al_ep]
         dict = {
             "filler_id": filler_id,
             "total_ep": ", ".join(total_ep),

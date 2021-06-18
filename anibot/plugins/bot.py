@@ -113,7 +113,7 @@ async def en_dis__able_cmd(client: Client, message: Message):
 @Client.on_message(~filters.private & filters.command(['disabled', f'disabled{BOT_NAME}']))
 async def list_disabled(client: Client, message: Message):
     find_gc = await DC.find_one({'_id': message.chat.id})
-    if find_gc==None:
+    if find_gc is None:
         await message.reply_text("No commands disabled in this group!!!")
     else:
         lscmd = find_gc['cmd_list'].replace(" ", "\n")
@@ -234,7 +234,9 @@ async def start_(client: Client, message: Message):
     bot = await client.get_me()
     if message.chat.id==message.from_user.id:
         user = message.from_user
-        if not (user.id in OWNER) and not (await USERS.find_one({"id": user.id})):
+        if user.id not in OWNER and not (
+            await USERS.find_one({"id": user.id})
+        ):
             await USERS.insert_one({"id": user.id, "user": user.first_name})
             await clog("ANIBOT", f"New User started bot\n\n[{user.first_name}](tg://user?id={user.id})\nID: `{user.id}`", "NEW_USER")
         if len(message.text.split())!=1:
@@ -290,15 +292,14 @@ Use /feedback cmd to contact bot owner'''
 
 Apart from above shown cmds"""
         )
+    elif message.chat.id==message.from_user.id:
+        await client.send_message(message.chat.id, text=text, reply_markup=buttons)
     else:
-        if message.chat.id==message.from_user.id:
-            await client.send_message(message.chat.id, text=text, reply_markup=buttons)
-        else:
-            await client.send_message(
-                message.chat.id,
-                text="Click below button for bot help",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Help", url=f"https://t.me/{bot_us}/?start=help")]])
-            )
+        await client.send_message(
+            message.chat.id,
+            text="Click below button for bot help",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Help", url=f"https://t.me/{bot_us}/?start=help")]])
+        )
 
 
 @Client.on_callback_query(filters.regex(pattern=r"help_(.*)"))

@@ -159,9 +159,9 @@ async def take_screen_shot(
 
 
 async def return_json_senpai(query: str, vars: dict, auth: bool = False, user: int = None):
-    if auth == False:
+    if not auth:
         url = "https://graphql.anilist.co"
-        response = requests.post(url, json={"query": query, "variables": vars}).json()
+        return requests.post(url, json={"query": query, "variables": vars}).json()
     else:
         headers = {
         'Authorization': 'Bearer ' + str((await AUTH_USERS.find_one({"id": int(user)}))['token']),
@@ -169,8 +169,9 @@ async def return_json_senpai(query: str, vars: dict, auth: bool = False, user: i
         'Accept': 'application/json',
         }
         url = "https://graphql.anilist.co"
-        response = requests.post(url, json={"query": query, "variables": vars}, headers=headers).json()
-    return response
+        return requests.post(
+            url, json={"query": query, "variables": vars}, headers=headers
+        ).json()
 
 
 def cflag(country):
@@ -185,8 +186,7 @@ def cflag(country):
 
 
 def pos_no(x):
-    th = "st" if x == "1" else "nd" if x == "2" else "rd" if x == "3" else "th"
-    return th
+    return "st" if x == "1" else "nd" if x == "2" else "rd" if x == "3" else "th"
 
 
 def ss(x: int):
@@ -231,7 +231,7 @@ def get_btns(media, user: int, result: list, lsqry: str = None, lspage: int = No
         buttons.append([InlineKeyboardButton("Description", callback_data=f"desc_{result[2][0]}_CHAR{qry}{pg}_{str(auth)}_{user}")])
         buttons.append([InlineKeyboardButton("List Series", callback_data=f"lsc_{result[2][0]}{qry}{pg}_{str(auth)}_{user}")])
     if media == "SCHEDULED":
-        if result[0]!=0 and result[0]!=6:
+        if result[0] not in [0, 6]:
             buttons.append([
                 InlineKeyboardButton(str(day_(result[0]-1)), callback_data=f"sched_{result[0]-1}_{user}"),
                 InlineKeyboardButton(str(day_(result[0]+1)), callback_data=f"sched_{result[0]+1}_{user}")
@@ -244,21 +244,20 @@ def get_btns(media, user: int, result: list, lsqry: str = None, lspage: int = No
         buttons.append([InlineKeyboardButton("More Info", url=result[1][2])])
     if media == "AIRING" and sfw == "False":
         buttons.append([InlineKeyboardButton("More Info", url=result[1])])
-    if auth==True and media!="SCHEDULED" and sfw == "False":
+    if auth and media != "SCHEDULED" and sfw == "False":
         auth_btns = get_auth_btns(media, user, result[2], lspage=lspage, lsqry=lsqry)
         buttons.append(auth_btns)
     if len(result)>3:
         if result[3] == "None":
             if result[4] != "None":
                 buttons.append([InlineKeyboardButton(text="Sequel", callback_data=f"btn_{result[4]}_{str(auth)}_{user}")])
+        elif result[4] != "None":
+            buttons.append([
+                InlineKeyboardButton(text="Prequel", callback_data=f"btn_{result[3]}_{str(auth)}_{user}"),
+                InlineKeyboardButton(text="Sequel", callback_data=f"btn_{result[4]}_{str(auth)}_{user}"),
+            ])
         else:
-            if result[4] != "None":
-                buttons.append([
-                    InlineKeyboardButton(text="Prequel", callback_data=f"btn_{result[3]}_{str(auth)}_{user}"),
-                    InlineKeyboardButton(text="Sequel", callback_data=f"btn_{result[4]}_{str(auth)}_{user}"),
-                ])
-            else:
-                buttons.append([InlineKeyboardButton(text="Prequel", callback_data=f"btn_{result[3]}_{str(auth)}_{user}")])
+            buttons.append([InlineKeyboardButton(text="Prequel", callback_data=f"btn_{result[3]}_{str(auth)}_{user}")])
     if lsqry != None and len(result)!=1 and result[1][1]!=1:
         if lspage == 1:
             buttons.append([InlineKeyboardButton(text="Next", callback_data=f"page_{media}{qry}_{int(lspage)+1}_{str(auth)}_{user}")])
