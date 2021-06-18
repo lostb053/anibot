@@ -14,7 +14,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * Watch Order from [Chiaki](https://chiaki.site/) using [web api](https://chiaki.vercel.app)
 <h3>Also can add to grps and enable sfw lock to prevent members from looking up hentai and 18+ rated stuff<br>Also includes command disabling</h3>
 
-<img src='https://img.shields.io/github/repo-size/lostb053/anibot?style=flat-square'>  <img src='https://img.shields.io/github/license/lostb053/anibot?style=flat-square'>  <img src='https://img.shields.io/github/languages/top/lostb053/anibot?style=flat-square'>
+<img src='https://img.shields.io/github/repo-size/lostb053/anibot?style=flat-square'>  <img src='https://img.shields.io/github/license/lostb053/anibot?style=flat-square'>  <img src='https://img.shields.io/github/languages/top/lostb053/anibot?style=flat-square'>  <img src='https://img.shields.io/codefactor/grade/github/lostb053/anibot?style=flat-square'>
 
 ## Requirements
 * Python 3.9.5
