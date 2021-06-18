@@ -5,13 +5,14 @@
 # but is in current state after DeletedUser420's edits
 # which made this code shorter and more efficient
 
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, InputMediaPhoto, InputMediaVideo
-import tracemoepy, random, asyncio
+import random
+import asyncio
+import tracemoepy
 from tracemoepy.errors import ServerError
 from aiohttp import ClientSession
 from pyrogram import Client, filters
-from pyrogram.types import Message
-from .. import BOT_NAME, HELP_DICT, TRIGGERS as trg
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, InputMediaPhoto, InputMediaVideo, Message
+from .. import BOT_NAME, TRIGGERS as trg
 from ..utils.helper import check_user, media_to_image, rand_key
 from ..utils.data_parser import check_if_adult
 from ..utils.db import get_collection

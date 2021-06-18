@@ -3,7 +3,7 @@
 
 from pyrogram import Client, filters
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
-from .. import BOT_NAME, HELP_DICT, TRIGGERS as trg
+from .. import BOT_NAME, TRIGGERS as trg
 from ..utils.data_parser import get_wo, get_wols
 from ..utils.helper import check_user
 from ..utils.db import get_collection
