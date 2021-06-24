@@ -7,7 +7,7 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from jikanpy import AioJikan
 from datetime import datetime
 
-ANIME_DB, MANGA_DB = {}, {}
+ANIME_DB, MANGA_DB, CHAR_DB = {}, {}, {}
 
 #### Anilist part ####
 
@@ -292,14 +292,21 @@ query ($id: Int) {
 """
 
 CHA_INFO_QUERY = """
-query ($id: Int) {
+query ($id: Int, $page: Int) {
   Media (id: $id, type: ANIME) {
     id
-    characters (role: MAIN, page: 1, perPage: 20) {
-      nodes {
-        name {
-          full
+    characters (page: $page, perPage: 25, sort: ROLE) {
+      pageInfo {
+        lastPage
+        total
+      }
+      edges {
+        node {
+        	name {
+          	full
+        	}
         }
+        role
       }
     }
   }
@@ -626,7 +633,7 @@ async def get_top_animes(gnr: str, page, user):
             InlineKeyboardButton("Prev", callback_data=f"topanimu_{gnr}_{int(page)-1}_{user}"),
             InlineKeyboardButton("Next", callback_data=f"topanimu_{gnr}_{int(page)+1}_{user}")
         ])
-    return [msg, nsfw], InlineKeyboardMarkup(btn) if not len(btn)==0 else ""
+    return [msg, nsfw], InlineKeyboardMarkup(btn) if len(btn)!=0 else ""
 
 
 async def get_user_favourites(id_, user, req, page, sighs):
@@ -683,8 +690,10 @@ async def get_featured_in_lists(idm, req, auth: bool = False, user: int = None, 
     return ([out+out_, total] if len(out_) != 0 else False), result["data"]["Character"]["image"]["large"]
 
 
-async def get_additional_info(idm, req, ctgry, auth: bool = False, user: int = None):
+async def get_additional_info(idm, req, ctgry, auth: bool = False, user: int = None, page: int = 0):
     vars_ = {"id": int(idm)}
+    if req=='char':
+        vars_['page'] = page
     result = await return_json_senpai(
         (
             (
@@ -698,8 +707,6 @@ async def get_additional_info(idm, req, ctgry, auth: bool = False, user: int = N
             else DESC_INFO_QUERY
         ),
         vars_,
-        auth=auth,
-        user=user
     )
     data = result["data"]["Media"] if ctgry == "ANI" else result["data"]["Character"]
     pic = f"https://img.anili.st/media/{idm}"
@@ -708,11 +715,11 @@ async def get_additional_info(idm, req, ctgry, auth: bool = False, user: int = N
         return (pic if ctgry == "ANI" else data["image"]["large"]), synopsis
     elif req == "char":
         charlist = []
-        for char in data["characters"]["nodes"]:
-            charlist.append(f"• {char['name']['full']}")
+        for char in data["characters"]['edges']:
+            charlist.append(f"`• {char['node']['name']['full']} `({char['role']})")
         chrctrs = ("\n").join(charlist)
         charls = f"`{chrctrs}`" if len(charlist) != 0 else ""
-        return pic, charls
+        return pic, charls, data["characters"]['pageInfo']
     else:
         prqlsql = data.get("relations").get("edges")
         ps = ""
@@ -936,7 +943,8 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
     return title_img, [finals_, total], [idm, in_ls, in_ls_id, isfav, str(adult)]
 
 
-async def get_character(var, auth: bool = False, user: int = None):
+async def get_character(query, page, auth: bool = False, user: int = None):
+    var = {"search": CHAR_DB[query], "page": int(page)}
     result = await return_json_senpai(CHARACTER_QUERY, var, auth=auth, user=user)
     if len(result['data']['Page']['characters'])==0:
         return [f"No results Found"]

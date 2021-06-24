@@ -18,15 +18,16 @@ from .. import ANILIST_CLIENT, ANILIST_REDIRECT_URL, ANILIST_SECRET, OWNER, TRIG
 from ..utils.data_parser import (
     get_all_genres, get_all_tags, get_top_animes, get_user_activity, get_user_favourites, toggle_favourites,
     get_anime, get_airing, get_anilist, get_character, get_additional_info, get_manga,
-    get_featured_in_lists, update_anilist, get_user, ANIME_DB, MANGA_DB
+    get_featured_in_lists, update_anilist, get_user, ANIME_DB, MANGA_DB, CHAR_DB
 )
-from ..utils.helper import check_user, get_btns, AUTH_USERS, rand_key, clog
+from ..utils.helper import check_user, get_btns, AUTH_USERS, rand_key, clog, control_user
 from ..utils.db import get_collection
 
 GROUPS = get_collection("GROUPS")
 SFW_GRPS = get_collection("SFW_GROUPS")
 DC = get_collection('DISABLED_CMDS')
 AG = get_collection('AIRING_GROUPS')
+CG = get_collection('CRUNCHY_GROUPS')
 
 no_pic = [
     'https://telegra.ph/file/0d2097f442e816ba3f946.jpg',
@@ -38,14 +39,20 @@ no_pic = [
 
 
 @Client.on_message(filters.command(["anime", f"anime{BOT_NAME}"], prefixes=trg))
+@control_user
 async def anime_cmd(client: Client, message: Message):
     """Search Anime Info"""
     text = message.text.split(" ", 1)
-    gid = message.chat
-    if gid.type in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid.id})):
-        await GROUPS.insert_one({"id": gid.id, "grp": gid.title})
-        await clog("ANIBOT", f"Bot added to a new group\n\n{gid.username or gid.title}\nID: `{gid.id}`", "NEW_GROUP")
-    find_gc = await DC.find_one({'_id': message.chat.id})
+    gid = message.chat.id
+    gidtitle = message.chat.username or message.chat.title
+    gidtype = message.chat
+    user = gid
+    if gidtype in ["supergroup", "group"]:
+        user = message.from_user.id
+    if gidtype in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid})):
+        await GROUPS.insert_one({"id": gid, "grp": gidtitle})
+        await clog("ANIBOT", f"Bot added to a new group\n\n{gidtitle}\nID: `{gid}`", "NEW_GROUP")
+    find_gc = await DC.find_one({'_id': gid})
     if find_gc!=None and 'anime' in find_gc['cmd_list'].split():
         return
     if len(text)==1:
@@ -57,7 +64,6 @@ async def anime_cmd(client: Client, message: Message):
     vars_ = {"search": query}
     if query.isdigit():
         vars_ = {"id": int(query)}
-    user = message.from_user.id
     if (await AUTH_USERS.find_one({"id": user})):
         auth = True
     result = await get_anime(vars_, user=user, auth=auth)
@@ -68,21 +74,27 @@ async def anime_cmd(client: Client, message: Message):
         await asyncio.sleep(5)
         return await k.delete()
     buttons = get_btns("ANIME", result=result, user=user, auth=auth)
-    if await (SFW_GRPS.find_one({"id": gid.id})) and result[2].pop()=="True":
-        await client.send_photo(message.chat.id, no_pic[random.randint(0, 4)], caption="This anime is marked 18+ and not allowed in this group")
+    if await (SFW_GRPS.find_one({"id": gid})) and result[2].pop()=="True":
+        await client.send_photo(gid, no_pic[random.randint(0, 4)], caption="This anime is marked 18+ and not allowed in this group")
         return
-    await client.send_photo(message.chat.id, title_img, caption=finals_, reply_markup=buttons)
+    await client.send_photo(gid, title_img, caption=finals_, reply_markup=buttons)
 
 
 @Client.on_message(filters.command(["manga", f"manga{BOT_NAME}"], prefixes=trg))
+@control_user
 async def manga_cmd(client: Client, message: Message):
     """Search Manga Info"""
     text = message.text.split(" ", 1)
-    gid = message.chat
-    if gid.type in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid.id})):
-        await GROUPS.insert_one({"id": gid.id, "grp": gid.title})
-        await clog("ANIBOT", f"Bot added to a new group\n\n{gid.username or gid.title}\nID: `{gid.id}`", "NEW_GROUP")
-    find_gc = await DC.find_one({'_id': message.chat.id})
+    gid = message.chat.id
+    gidtitle = message.chat.username or message.chat.title
+    gidtype = message.chat
+    user = gid
+    if gidtype in ["supergroup", "group"]:
+        user = message.from_user.id
+    if gidtype in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid})):
+        await GROUPS.insert_one({"id": gid, "grp": gidtitle})
+        await clog("ANIBOT", f"Bot added to a new group\n\n{gidtitle}\nID: `{gid}`", "NEW_GROUP")
+    find_gc = await DC.find_one({'_id': gid})
     if find_gc!=None and 'manga' in find_gc['cmd_list'].split():
         return
     if len(text)==1:
@@ -93,7 +105,6 @@ async def manga_cmd(client: Client, message: Message):
     qdb = rand_key()
     MANGA_DB[qdb] = query
     auth = False
-    user = message.from_user.id
     if (await AUTH_USERS.find_one({"id": user})):
         auth = True
     result = await get_manga(qdb, 1, auth=auth, user=user)
@@ -103,22 +114,28 @@ async def manga_cmd(client: Client, message: Message):
         return await k.delete()
     pic, finals_ = result[0], result[1][0]
     buttons = get_btns("MANGA", lsqry=qdb, lspage=1, user=user, result=result, auth=auth)
-    if await (SFW_GRPS.find_one({"id": message.chat.id})) and result[2].pop()=="True":
+    if await (SFW_GRPS.find_one({"id": gid})) and result[2].pop()=="True":
         buttons = get_btns("MANGA", lsqry=qdb, lspage=1, user=user, result=result, auth=auth, sfw="True")
-        await client.send_photo(message.chat.id, no_pic[random.randint(0, 4)], caption="This manga is marked 18+ and not allowed in this group", reply_markup=buttons)
+        await client.send_photo(gid, no_pic[random.randint(0, 4)], caption="This manga is marked 18+ and not allowed in this group", reply_markup=buttons)
         return
-    await client.send_photo(message.chat.id, pic, caption=finals_, reply_markup=buttons)
+    await client.send_photo(gid, pic, caption=finals_, reply_markup=buttons)
 
 
 @Client.on_message(filters.command(["character", f"character{BOT_NAME}"], prefixes=trg))
+@control_user
 async def character_cmd(client: Client, message: Message):
     """Get Info about a Character"""
     text = message.text.split(" ", 1)
-    gid = message.chat
-    if gid.type in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid.id})):
-        await GROUPS.insert_one({"id": gid.id, "grp": gid.title})
-        await clog("ANIBOT", f"Bot added to a new group\n\n{gid.username or gid.title}\nID: `{gid.id}`", "NEW_GROUP")
-    find_gc = await DC.find_one({'_id': message.chat.id})
+    gid = message.chat.id
+    gidtype = message.chat.type
+    gidtitle = message.chat.username or message.chat.title
+    user = gid
+    if gidtype in ["supergroup", "group"]:
+        user = message.from_user.id
+    if gidtype in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid})):
+        await GROUPS.insert_one({"id": gid, "grp": gidtitle})
+        await clog("ANIBOT", f"Bot added to a new group\n\n{gidtitle}\nID: `{gid}`", "NEW_GROUP")
+    find_gc = await DC.find_one({'_id': gid})
     if find_gc!=None and 'character' in find_gc['cmd_list'].split():
         return
     if len(text)==1:
@@ -126,26 +143,29 @@ async def character_cmd(client: Client, message: Message):
         await asyncio.sleep(5)
         return await k.delete()
     query = text[1]
-    var = {"search": query}
+    qdb = rand_key()
+    CHAR_DB[qdb]=query
     auth = False
-    user = message.from_user.id
     if (await AUTH_USERS.find_one({"id": user})):
         auth = True
-    result = await get_character(var, auth=auth, user=user)
+    result = await get_character(qdb, 1, auth=auth, user=user)
     if len(result) == 1:
         k = await message.reply_text(result[0])
         await asyncio.sleep(5)
         return await k.delete()
     img = result[0]
     cap_text = result[1][0]
-    buttons = get_btns("CHARACTER", user=user, lsqry=query, lspage=1, result=result, auth=auth)
-    await client.send_photo(message.chat.id, img, caption=cap_text, reply_markup=buttons)
+    buttons = get_btns("CHARACTER", user=user, lsqry=qdb, lspage=1, result=result, auth=auth)
+    await client.send_photo(gid, img, caption=cap_text, reply_markup=buttons)
 
 
 @Client.on_message(filters.command(["anilist", f"anilist{BOT_NAME}"], prefixes=trg))
+@control_user
 async def anilist_cmd(client: Client, message: Message):
     text = message.text.split(" ", 1)
-    find_gc = await DC.find_one({'_id': message.chat.id})
+    gid = message.chat.id
+    user = message.from_user.id
+    find_gc = await DC.find_one({'_id': gid})
     if find_gc!=None and 'anilist' in find_gc['cmd_list'].split():
         return
     if len(text)==1:
@@ -156,7 +176,6 @@ async def anilist_cmd(client: Client, message: Message):
     qdb = rand_key()
     ANIME_DB[qdb] = query
     auth = False
-    user = message.from_user.id
     if (await AUTH_USERS.find_one({"id": user})):
         auth = True
     result = await get_anilist(qdb, 1, auth=auth, user=user)
@@ -166,18 +185,20 @@ async def anilist_cmd(client: Client, message: Message):
         return await k.delete()
     pic, msg = result[0], result[1][0]
     buttons = get_btns("ANIME", lsqry=qdb, lspage=1, result=result, user=user, auth=auth)
-    if await (SFW_GRPS.find_one({"id": message.chat.id})) and result[2].pop()=="True":
+    if await (SFW_GRPS.find_one({"id": gid})) and result[2].pop()=="True":
         buttons = get_btns("ANIME", lsqry=qdb, lspage=1, result=result, user=user, auth=auth, sfw="True")
-        await client.send_photo(message.chat.id, no_pic[random.randint(0, 4)], caption="This anime is marked 18+ and not allowed in this group", reply_markup=buttons)
+        await client.send_photo(gid, no_pic[random.randint(0, 4)], caption="This anime is marked 18+ and not allowed in this group", reply_markup=buttons)
         return
-    await client.send_photo(message.chat.id, pic, caption=msg, reply_markup=buttons)
+    await client.send_photo(gid, pic, caption=msg, reply_markup=buttons)
 
 
 @Client.on_message(filters.command(["flex", f"flex{BOT_NAME}", "user", f"user{BOT_NAME}"], prefixes=trg))
+@control_user
 async def flex_cmd(client: Client, message: Message):
     query = message.text.split(" ", 1)
     qry = None
-    find_gc = await DC.find_one({'_id': message.chat.id})
+    gid = message.chat.id
+    find_gc = await DC.find_one({'_id': gid})
     if "user" in query[0]:
         if find_gc!=None and 'user' in find_gc['cmd_list'].split():
             return
@@ -202,13 +223,15 @@ async def flex_cmd(client: Client, message: Message):
         await asyncio.sleep(5)
         return await k.delete()
     pic, msg, buttons = result
-    await client.send_photo(message.chat.id, pic, caption=msg, reply_markup=buttons)
+    await client.send_photo(gid, pic, caption=msg, reply_markup=buttons)
 
 
 @Client.on_message(filters.command(["top", f"top{BOT_NAME}"], prefixes=trg))
+@control_user
 async def top_tags_cmd(client: Client, message: Message):
     query = message.text.split(" ", 1)
-    find_gc = await DC.find_one({'_id': message.chat.id})
+    gid = message.chat.id
+    find_gc = await DC.find_one({'_id': gid})
     if find_gc!=None and 'top' in find_gc['cmd_list'].split():
         return
     get_tag = "None"
@@ -220,17 +243,19 @@ async def top_tags_cmd(client: Client, message: Message):
         k = await message.reply_text(result[0])
         await asyncio.sleep(5)
         return await k.delete()
-    if await (SFW_GRPS.find_one({"id": message.chat.id})) and str(result[0][1])=="True":
+    if await (SFW_GRPS.find_one({"id": gid})) and str(result[0][1])=="True":
         return await message.reply_text('No nsfw stuff allowed in this group!!!')
     msg, buttons = result
-    await client.send_message(message.chat.id, msg[0], reply_markup=buttons if buttons!='' else None)
+    await client.send_message(gid, msg[0], reply_markup=buttons if buttons!='' else None)
 
 
 @Client.on_message(filters.command(["airing", f"airing{BOT_NAME}"], prefixes=trg))
+@control_user
 async def airing_cmd(client: Client, message: Message):
     """Get Airing Detail of Anime"""
     text = message.text.split(" ", 1)
-    find_gc = await DC.find_one({'_id': message.chat.id})
+    gid = message.chat.id
+    find_gc = await DC.find_one({'_id': gid})
     if find_gc!=None and 'airing' in find_gc['cmd_list'].split():
         return
     if len(text)==1:
@@ -252,13 +277,14 @@ async def airing_cmd(client: Client, message: Message):
         return await k.delete()
     coverImg, out = result[0]
     btn = get_btns("AIRING", user=user, result=result, auth=auth)
-    if await (SFW_GRPS.find_one({"id": message.chat.id})) and result[2].pop()=="True":
-        await client.send_photo(message.chat.id, no_pic[random.randint(0, 4)], caption="This anime is marked 18+ and not allowed in this group")
+    if await (SFW_GRPS.find_one({"id": gid})) and result[2].pop()=="True":
+        await client.send_photo(gid, no_pic[random.randint(0, 4)], caption="This anime is marked 18+ and not allowed in this group")
         return
-    await client.send_photo(message.chat.id, coverImg, caption=out, reply_markup=btn)
+    await client.send_photo(gid, coverImg, caption=out, reply_markup=btn)
 
 
 @Client.on_message(filters.private & filters.command("auth", prefixes=trg))
+@control_user
 async def auth_link_cmd(client, message: Message):
     await message.reply_text(
         text = """Follow the steps to complete Authorization:
@@ -273,25 +299,39 @@ async def auth_link_cmd(client, message: Message):
 
 
 @Client.on_message(~filters.private & filters.command(["settings", f"settings{BOT_NAME}"], prefixes=trg))
+@control_user
 async def sfw_cmd(client: Client, message: Message):
-    if message.from_user.id in OWNER or (await client.get_chat_member(message.chat.id, message.from_user.id)).status!='member':
-        text = "This allows you to change group settings\n\nNSFW toggle switches on filtering of 18+ marked content\nAiring notifications notifies about airing of anime in recent"
+    user = message.from_user.id
+    cid = message.chat.id
+    if user in OWNER or (await client.get_chat_member(cid, user)).status!='member':
+        text = """
+This allows you to change group settings
+        
+NSFW toggle switches on filtering of 18+ marked content
+Airing notifications notifies about airing of anime in recent
+Crunchyroll updates will toggle notifications about release of animes on crunchyroll site
+"""
         sfw = "NSFW: Allowed"
-        if await (SFW_GRPS.find_one({"id": message.chat.id})):
+        if await (SFW_GRPS.find_one({"id": cid})):
             sfw = "NSFW: Not Allowed"
         notif = "Airing notifications: OFF"
-        if await (AG.find_one({"_id": message.chat.id})):
+        if await (AG.find_one({"_id": cid})):
             notif = "Airing notifications: ON"
+        cr = "Crunchyroll Updates: OFF"
+        if await (CG.find_one({"_id": cid})):
+            cr = "Crunchyroll Updates: ON"
         await message.reply_text(
             text = text,
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(text=sfw, callback_data=f"settogl_sfw_{message.chat.id}")],
-                [InlineKeyboardButton(text=notif, callback_data=f"settogl_notif_{message.chat.id}")]
+                [InlineKeyboardButton(text=sfw, callback_data=f"settogl_sfw_{cid}")],
+                [InlineKeyboardButton(text=notif, callback_data=f"settogl_notif_{cid}")],
+                [InlineKeyboardButton(text=cr, callback_data=f"settogl_cr_{cid}")]
             ])
         )
 
 
 @Client.on_message(filters.private & filters.command("code", prefixes=trg))
+@control_user
 async def code_cmd(client, message: Message):
     text = message.text.split(" ", 1)
     if len(text)==1:
@@ -310,20 +350,23 @@ async def code_cmd(client, message: Message):
         'redirect_uri': ANILIST_REDIRECT_URL,
         'code': query
     }
-    if (await AUTH_USERS.find_one({"id": message.from_user.id})):
-        return await message.reply_text("You have already yourself\nIf you wish to logout send /logout")
+    us_ = message.from_user.id
+    if (await AUTH_USERS.find_one({"id": us_})):
+        return await message.reply_text("You have already authorized yourself\nIf you wish to logout send /logout")
     response: dict = requests.post("https://anilist.co/api/v2/oauth/token", headers=headers, json=json).json()
     if response.get("access_token"):
-        await AUTH_USERS.insert_one({"id": message.from_user.id, "token": response.get("access_token")})
+        await AUTH_USERS.insert_one({"id": us_, "token": response.get("access_token")})
         await message.reply_text("Authorization Successfull!!!" )
     else:
         await message.reply_text("Please verify code, or get new one from website!!!")
 
 
 @Client.on_message(filters.command(["me", f"me{BOT_NAME}", "activity", f"activity{BOT_NAME}"], prefixes=trg))
+@control_user
 async def activity_cmd(client: Client, message: Message):
     user = message.from_user.id
-    find_gc = await DC.find_one({'_id': message.chat.id})
+    gid = message.chat.id
+    find_gc = await DC.find_one({'_id': gid})
     if find_gc!=None and ('me' or 'activity') in find_gc['cmd_list'].split():
         return
     if not (await AUTH_USERS.find_one({"id": user})):
@@ -337,13 +380,15 @@ async def activity_cmd(client: Client, message: Message):
     result = await get_user_activity(int(query), user=int(user))
     pic, msg, kek = result
     btns = InlineKeyboardMarkup([[InlineKeyboardButton("Profile", url=f"https://anilist.co/user/{query}")]])
-    await client.send_photo(message.chat.id, pic, caption=msg, reply_markup=btns)
+    await client.send_photo(gid, pic, caption=msg, reply_markup=btns)
 
 
 @Client.on_message(filters.command(["favourites", f"favourites{BOT_NAME}"], prefixes=trg))
+@control_user
 async def favourites_cmd(client: Client, message: Message):
     user = message.from_user.id
-    find_gc = await DC.find_one({'_id': message.chat.id})
+    gid = message.chat.id
+    find_gc = await DC.find_one({'_id': gid})
     if find_gc!=None and 'favourites' in find_gc['cmd_list'].split():
         return
     if not (await AUTH_USERS.find_one({"id": user})):
@@ -352,41 +397,44 @@ async def favourites_cmd(client: Client, message: Message):
             "Please connect your account first to use this cmd",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Auth", url=f"https://t.me/{bot_us}/?start=auth")]])
         )
-    q = message.from_user.id
     result = await get_user(None, "flex", user)
     query = result[0].split("/").pop().split("?")[0]
     btn = InlineKeyboardMarkup(
         [   
             [
-                InlineKeyboardButton("ANIME", callback_data=f"myfavqry_ANIME_{query}_1_no_{q}"),
-                InlineKeyboardButton("CHARACTER", callback_data=f"myfavqry_CHAR_{query}_1_no_{q}"),
-                InlineKeyboardButton("MANGA", callback_data=f"myfavqry_MANGA_{query}_1_no_{q}")
+                InlineKeyboardButton("ANIME", callback_data=f"myfavqry_ANIME_{query}_1_no_{user}"),
+                InlineKeyboardButton("CHARACTER", callback_data=f"myfavqry_CHAR_{query}_1_no_{user}"),
+                InlineKeyboardButton("MANGA", callback_data=f"myfavqry_MANGA_{query}_1_no_{user}")
             ],
             [
                 InlineKeyboardButton("Profile", url=f"https://anilist.co/user/{query}")
             ]
         ]
     )
-    await client.send_photo(message.chat.id, result[0], caption="Choose one of the below options", reply_markup=btn)
+    await client.send_photo(gid, result[0], caption="Choose one of the below options", reply_markup=btn)
 
 
 @Client.on_message(filters.private & filters.command("logout", prefixes=trg))
+@control_user
 async def logout_cmd(client, message: Message):
-    if (await AUTH_USERS.find_one({"id": message.from_user.id})):
-        AUTH_USERS.find_one_and_delete({"id": message.from_user.id})
+    user = message.from_user.id
+    if (await AUTH_USERS.find_one({"id": user})):
+        AUTH_USERS.find_one_and_delete({"id": user})
         await message.reply_text("Logged out!!!")
     else:
         await message.reply_text("You are not authorized to begin with!!!")
 
 
 @Client.on_message(filters.command(["gettags", f"gettags{BOT_NAME}", "getgenres", f"getgenres{BOT_NAME}"], prefixes=trg))
+@control_user
 async def list_tags_genres_cmd(client, message: Message):
-    find_gc = await DC.find_one({'_id': message.chat.id})
+    gid = message.chat.id
+    find_gc = await DC.find_one({'_id': gid})
     if find_gc!=None and "gettags" in message.text.split()[0] and 'gettags' in find_gc['cmd_list'].split():
         return
     if find_gc!=None and "getgenres" in message.text.split()[0] and 'getgenres' in find_gc['cmd_list'].split():
         return
-    if await (SFW_GRPS.find_one({"id": message.chat.id})) and 'nsfw' in message.text:
+    if await (SFW_GRPS.find_one({"id": gid})) and 'nsfw' in message.text:
         return await message.reply_text('No nsfw allowed here!!!')
     msg = (await get_all_tags(message.text)) if "gettags" in message.text.split()[0] else (await get_all_genres())
     await message.reply_text(msg)
@@ -406,16 +454,14 @@ async def page_btn(client, cq: CallbackQuery):
             MANGA_DB[query]
         except KeyError:
             return await cq.answer("Query Expired!!!\nCreate new one", show_alert=True)
+    if media=="CHARACTER":
+        try:
+            CHAR_DB[query]
+        except KeyError:
+            return await cq.answer("Query Expired!!!\nCreate new one", show_alert=True)
     await cq.answer()
-    get_pg = {"search": query, "page": int(page)}
     authbool = bool(1) if auth=="True" else bool(0)
-    result = (
-        (await get_anilist(query, int(page), auth=authbool, user=int(user)))
-        if media == "ANIME"
-        else (await get_character(get_pg, auth=authbool, user=int(user)))
-        if media == "CHARACTER"
-        else (await get_manga(query, int(page), auth=authbool, user=int(user)))
-    )
+    result = await (get_anilist if media == "ANIME" else get_character if media == "CHARACTER" else get_manga)(query, int(page), auth=authbool, user=int(user))
     pic, msg = result[0], result[1][0]
     button = get_btns(media, lsqry=query, lspage=int(page), result=result, user=user, auth=authbool)
     if await (SFW_GRPS.find_one({"id": cq.message.chat.id})) and media!="CHARACTER" and result[2].pop()=="True":
@@ -452,11 +498,12 @@ async def top_tags_btn(client, cq: CallbackQuery):
 
 @Client.on_callback_query(filters.regex(pattern=r"settogl_(.*)"))
 async def nsfw_toggle_btn(client, cq: CallbackQuery):
+    cus = cq.from_user.id
     try:
-        k = await cq.message.chat.get_member(cq.from_user.id)
+        k = await cq.message.chat.get_member(cus)
     except UserNotParticipant:
         return
-    if cq.from_user.id not in OWNER and str(k.status)=="member":
+    if cus not in OWNER and str(k.status)=="member":
         await cq.answer("You don't have enough permissions to change this!!!", show_alert=True)
         return
     await cq.answer()
@@ -469,6 +516,10 @@ async def nsfw_toggle_btn(client, cq: CallbackQuery):
         notif = "Airing notifications: ON"
     else:
         notif = "Airing notifications: OFF"
+    if await (CG.find_one({"_id": int(query[2])})):
+        cr = "Crunchyroll Updates: ON"
+    else:
+        cr = "Crunchyroll Updates: OFF"
     if query[1]=="sfw":
         if await (SFW_GRPS.find_one({"id": int(query[2])})):
             await SFW_GRPS.find_one_and_delete({"id": int(query[2])})
@@ -483,9 +534,17 @@ async def nsfw_toggle_btn(client, cq: CallbackQuery):
         else:
             await AG.insert_one({"_id": int(query[2])})
             notif = "Airing notifications: ON"
+    if query[1]=="cr":
+        if await (CG.find_one({"_id": int(query[2])})):
+            await CG.find_one_and_delete({"_id": int(query[2])})
+            cr = "Crunchyroll Updates: OFF"
+        else:
+            await CG.insert_one({"_id": int(query[2])})
+            cr = "Crunchyroll Updates: ON"
     btns = InlineKeyboardMarkup([
         [InlineKeyboardButton(text=sfw, callback_data=f"settogl_sfw_{query[2]}")],
-        [InlineKeyboardButton(text=notif, callback_data=f"settogl_notif_{query[2]}")]
+        [InlineKeyboardButton(text=notif, callback_data=f"settogl_notif_{query[2]}")],
+        [InlineKeyboardButton(text=cr, callback_data=f"settogl_cr_{query[2]}")]
     ])
     await cq.edit_message_reply_markup(reply_markup=btns)
 
@@ -679,9 +738,13 @@ async def additional_info_btn(client: Client, cq: CallbackQuery):
         if kek == "ls"
         else "<b>Characters List</b>"
     )
-    lsqry = f"_{q[3]}" if len(q) > 4 else ""
-    lspg = f"_{q[4]}" if len(q) > 4 else ""
-    pic, result = await get_additional_info(query, kek, ctgry)
+    page = 0
+    lsqry = f"_{q[3]}" if len(q) > 6 else ""
+    lspg = f"_{q[4]}" if len(q) > 6 else ""
+    if kek == 'char':
+        page = q[6] if len(q) > 6 else q[4]
+    rjsdata = await get_additional_info(query, kek, ctgry, page=int(page))
+    pic, result = rjsdata[0], rjsdata[1]
     button = []
     spoiler = False
     bot = (await client.get_me()).username
@@ -694,10 +757,24 @@ async def additional_info_btn(client: Client, cq: CallbackQuery):
         if spoiler==False:
             result += "\n\nFor more info click below given button"
             button.append([InlineKeyboardButton(text="More Info", url=f"https://t.me/{bot}/?start=des_{ctgry}_{query}")])
-    msg = f"{info}:\n\n{result}"
+    add_ = ""
     user = cq.data.split("_").pop()
+    if kek=='char':
+        btndata = rjsdata[2]
+        if btndata['lastPage']!=1:
+            if page == '1':
+                button.append([InlineKeyboardButton(text="Next", callback_data=f'{kek}_{query}_{ctgry}{lsqry}{lspg}_{q[5] if len(q) != 6 else q[3]}_{int(page)+1}_{user}')])
+            elif btndata['lastPage']==int(page):
+                button.append([InlineKeyboardButton(text="Prev", callback_data=f'{kek}_{query}_{ctgry}{lsqry}{lspg}_{q[5] if len(q) != 6 else q[3]}_{int(page)-1}_{user}')])
+            else:
+                button.append([
+                    InlineKeyboardButton(text="Prev", callback_data=f'{kek}_{query}_{ctgry}{lsqry}{lspg}_{q[5] if len(q) != 6 else q[3]}_{int(page)-1}_{user}'),
+                    InlineKeyboardButton(text="Next", callback_data=f'{kek}_{query}_{ctgry}{lsqry}{lspg}_{q[5] if len(q) != 6 else q[3]}_{int(page)+1}_{user}')
+                ])
+        add_ = f"\n\nTotal Characters: {btndata['total']}"
+    msg = f"{info}:\n\n{result+add_}"
     cbd = (
-        f"btn_{query}_{q[3]}_{user}" if len(q) == 5
+        f"btn_{query}_{q[3]}_{user}" if len(q) <= 6
         else f"page_ANIME{lsqry}{lspg}_{q[5]}_{user}" if ctgry=="ANI"
         else f"page_CHARACTER{lsqry}{lspg}_{q[5]}_{user}"
     )

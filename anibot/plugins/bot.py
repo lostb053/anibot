@@ -13,7 +13,7 @@ from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, 
 from pyrogram.errors import ChannelInvalid as ci, ChannelPrivate as cp, PeerIdInvalid as pi, FloodWait as fw
 from .. import BOT_NAME, TRIGGERS as trg, OWNER, HELP_DICT, anibot
 from ..utils.db import get_collection
-from ..utils.helper import AUTH_USERS, clog, check_user
+from ..utils.helper import AUTH_USERS, clog, check_user, control_user
 from ..utils.data_parser import get_additional_info
 from .anilist import auth_link_cmd
 
@@ -47,9 +47,12 @@ CMD = [
 
 
 @Client.on_message(~filters.private & filters.command(['disable', f'disable{BOT_NAME}', 'enable', f'enable{BOT_NAME}']))
+@control_user
 async def en_dis__able_cmd(client: Client, message: Message):
     cmd = message.text.split(" ", 1)
-    if message.from_user.id in OWNER or (await anibot.get_chat_member(message.chat.id, message.from_user.id)).status!='member':
+    gid = message.chat.id
+    user = message.from_user.id
+    if user in OWNER or (await anibot.get_chat_member(gid, user)).status!='member':
         if len(cmd)==1:
             x = await message.reply_text('No command specified to be disabled!!!')
             await asyncio.sleep(5)
@@ -57,14 +60,14 @@ async def en_dis__able_cmd(client: Client, message: Message):
             return
         enable = False if not 'enable' in cmd[0] else True
         if set(cmd[1].split()).issubset(CMD):
-            find_gc = await DC.find_one({'_id': message.chat.id})
+            find_gc = await DC.find_one({'_id': gid})
             if find_gc==None:
                 if enable:
                     x = await message.reply_text('Command already enabled!!!')
                     await asyncio.sleep(5)
                     await x.delete()
                     return
-                await DC.insert_one({'_id': message.chat.id, 'cmd_list': cmd[1]})
+                await DC.insert_one({'_id': gid, 'cmd_list': cmd[1]})
                 x = await message.reply_text("Command disabled!!!")
                 await asyncio.sleep(5)
                 await x.delete()
@@ -74,7 +77,7 @@ async def en_dis__able_cmd(client: Client, message: Message):
                 if set(cmd[1].split()).issubset(ocls.split()):
                     if enable:
                         if len(ocls.split())==1:
-                            await DC.delete_one({'_id': message.chat.id})
+                            await DC.delete_one({'_id': gid})
                             x = await message.reply_text("Command enabled!!!")
                             await asyncio.sleep(5)
                             await x.delete()
@@ -101,7 +104,7 @@ async def en_dis__able_cmd(client: Client, message: Message):
                             if i not in lsncls:
                                 lsncls.append(i)
                         ncls = " ".join(lsncls)
-                await DC.update_one({'_id': message.chat.id}, {'$set': {'cmd_list': ncls}})
+                await DC.update_one({'_id': gid}, {'$set': {'cmd_list': ncls}})
                 x = await message.reply_text(f"Command {'dis' if enable==False else 'en'}abled!!!")
                 await asyncio.sleep(5)
                 await x.delete()
@@ -111,6 +114,7 @@ async def en_dis__able_cmd(client: Client, message: Message):
 
 
 @Client.on_message(~filters.private & filters.command(['disabled', f'disabled{BOT_NAME}']))
+@control_user
 async def list_disabled(client: Client, message: Message):
     find_gc = await DC.find_one({'_id': message.chat.id})
     if find_gc==None:
@@ -121,15 +125,14 @@ async def list_disabled(client: Client, message: Message):
 
 
 @Client.on_message(filters.user(OWNER) & filters.command(['dbcleanup', f'dbcleanup{BOT_NAME}'], prefixes=trg))
+@control_user
 async def db_cleanup(client: Client, message: Message):
     count = 0
+    entries = ""
     st = dt.now()
     x = await message.reply_text("Starting database cleanup in 5 seconds")
     et = dt.now()
     pt = (et-st).microseconds / 1000
-    onosauus = await AUTH_USERS.estimated_document_count()
-    onosgrps = await GROUPS.estimated_document_count()
-    onossgrps = await SFW_GROUPS.estimated_document_count()
     await asyncio.sleep(5)
     await x.edit_text("Checking 1st collection!!!")
     async for i in GROUPS.find():
@@ -138,9 +141,11 @@ async def db_cleanup(client: Client, message: Message):
             await client.get_chat(i['id'])
         except cp:
             count += 1
+            entries += str(await GROUPS.find_one({'id': i['id']}))+'\n\n'
             await GROUPS.find_one_and_delete({'id': i['id']})
         except ci:
             count += 1
+            entries += str(await GROUPS.find_one({'id': i['id']}))+'\n\n'
             await GROUPS.find_one_and_delete({'id': i['id']})
         except fw:
             await asyncio.sleep(fw.x + 5)
@@ -152,9 +157,11 @@ async def db_cleanup(client: Client, message: Message):
             await client.get_chat(i['id'])
         except cp:
             count += 1
+            entries += str(await SFW_GROUPS.find_one({'id': i['id']}))+'\n\n'
             await SFW_GROUPS.find_one_and_delete({'id': i['id']})
         except ci:
             count += 1
+            entries += str(await SFW_GROUPS.find_one({'id': i['id']}))+'\n\n'
             await SFW_GROUPS.find_one_and_delete({'id': i['id']})
         except fw:
             await asyncio.sleep(fw.x + 5)
@@ -166,9 +173,11 @@ async def db_cleanup(client: Client, message: Message):
             await client.get_chat(i['_id'])
         except cp:
             count += 1
+            entries += str(await DC.find_one({'id': i['id']}))+'\n\n'
             await DC.find_one_and_delete({'id': i['_id']})
         except ci:
             count += 1
+            entries += str(await DC.find_one({'id': i['id']}))+'\n\n'
             await DC.find_one_and_delete({'id': i['_id']})
         except fw:
             await asyncio.sleep(fw.x + 5)
@@ -180,9 +189,11 @@ async def db_cleanup(client: Client, message: Message):
             await client.get_chat(i['_id'])
         except cp:
             count += 1
+            entries += str(await AG.find_one({'id': i['id']}))+'\n\n'
             await AG.find_one_and_delete({'_id': i['_id']})
         except ci:
             count += 1
+            entries += str(await AG.find_one({'id': i['id']}))+'\n\n'
             await AG.find_one_and_delete({'_id': i['_id']})
         except fw:
             await asyncio.sleep(fw.x + 5)
@@ -194,27 +205,23 @@ async def db_cleanup(client: Client, message: Message):
             await client.get_users(i['id'])
         except pi:
             count += 1
+            entries += str(await AUTH_USERS.find_one({'id': i['id']}))+'\n\n'
             await AUTH_USERS.find_one_and_delete({'id': i['id']})
         except fw:
             await asyncio.sleep(fw.x + 5)
+    nosgrps = await GROUPS.estimated_document_count()
+    nossgrps = await SFW_GROUPS.estimated_document_count()
+    nosauus = await AUTH_USERS.estimated_document_count()    
     if count == 0:
         msg = f"""Database seems to be accurate, no changes to be made!!!
 
-**Groups:** `{onosgrps}`
-**SFW Groups:** `{onossgrps}`
-**Authorised Users:** `{onosauus}`
+**Groups:** `{nosgrps}`
+**SFW Groups:** `{nossgrps}`
+**Authorised Users:** `{nosauus}`
 **Ping:** `{pt}`
 """
     else:
-        nosgrps = await GROUPS.estimated_document_count()
-        nossgrps = await SFW_GROUPS.estimated_document_count()
-        nosauus = await AUTH_USERS.estimated_document_count()
         msg = f"""{count} entries removed from database!!!
-
-**Old Data:**
-    __Groups:__ `{onosgrps}`
-    __SFW Groups:__ `{onossgrps}`
-    __Authorised Users:__ `{onosauus}`
 
 **New Data:**
     __Groups:__ `{nosgrps}`
@@ -223,20 +230,28 @@ async def db_cleanup(client: Client, message: Message):
 
 **Ping:** `{pt}`
 """
+        if len(entries)<4095:
+            with open('entries.txt', "w+") as file:
+                file.write(entries)
+            return await x.reply_document('entries.txt')
+        await x.reply_text(entries)
     await x.edit_text(msg)
 
 
 @Client.on_message(filters.command(['start', f'start{BOT_NAME}'], prefixes=trg))
+@control_user
 async def start_(client: Client, message: Message):
-    find_gc = await DC.find_one({'_id': message.chat.id})
+    gid = message.chat.id
+    user = message.from_user.id
+    find_gc = await DC.find_one({'_id': gid})
     if find_gc!=None and 'start' in find_gc['cmd_list'].split():
         return
     bot = await client.get_me()
-    if message.chat.id==message.from_user.id:
-        user = message.from_user
-        if not (user.id in OWNER) and not (await USERS.find_one({"id": user.id})):
-            await USERS.insert_one({"id": user.id, "user": user.first_name})
-            await clog("ANIBOT", f"New User started bot\n\n[{user.first_name}](tg://user?id={user.id})\nID: `{user.id}`", "NEW_USER")
+    if gid==user:
+        usertitle = message.from_user.username or message.from_user.first_name
+        if not (user in OWNER) and not (await USERS.find_one({"id": user})):
+            await USERS.insert_one({"id": user, "user": usertitle})
+            await clog("ANIBOT", f"New User started bot\n\n[{usertitle}](tg://user?id={user})\nID: `{user}`", "NEW_USER")
         if len(message.text.split())!=1:
             deep_cmd = message.text.split()[1]
             if deep_cmd=="help":
@@ -247,27 +262,29 @@ async def start_(client: Client, message: Message):
                 return
             if deep_cmd.split("_")[0]=="des":
                 pic, result = await get_additional_info(deep_cmd.split("_")[2], "desc", deep_cmd.split("_")[1])
-                await client.send_photo(user.id, pic)
-                await client.send_message(user.id, result.replace("~!", "").replace("!~", ""))
+                await client.send_photo(user, pic)
+                await client.send_message(user, result.replace("~!", "").replace("!~", ""))
                 return
         await client.send_message(
-            message.chat.id,
+            gid,
             text=f"""Kon'nichiwa!!!
 I'm {bot.first_name} bot and I can help you get info on Animes, Mangas, Characters, Airings, Schedules, Watch Orders of Animes, etc
 For more info send /help in here.
 If you wish to use me in a group start me by /start{BOT_NAME} command after adding me in the group."""
         )
     else:
-        gid = message.chat
-        if not await (GROUPS.find_one({"id": gid.id})):
-            await GROUPS.insert_one({"id": gid.id, "grp": gid.title})
-            await clog("ANIBOT", f"Bot added to a new group\n\n{gid.username or gid.title}\nID: `{gid.id}`", "NEW_GROUP")
-        await client.send_message(message.chat.id, text="Bot seems online!!!")
+        gidtitle = message.chat.username or message.chat.title
+        if not await (GROUPS.find_one({"id": gid})):
+            await GROUPS.insert_one({"id": gid, "grp": gidtitle})
+            await clog("ANIBOT", f"Bot added to a new group\n\n{gidtitle}\nID: `{gid}`", "NEW_GROUP")
+        await client.send_message(gid, text="Bot seems online!!!")
 
 
 @Client.on_message(filters.command(['help', f'help{BOT_NAME}'], prefixes=trg))
+@control_user
 async def help_(client: Client, message: Message):
-    find_gc = await DC.find_one({'_id': message.chat.id})
+    gid = message.chat.id
+    find_gc = await DC.find_one({'_id': gid})
     if find_gc!=None and 'help' in find_gc['cmd_list'].split():
         return
     id_ = message.from_user.id
@@ -278,9 +295,9 @@ Use /start or !start cmd to start bot in group or pm
 Use /help or !help cmd to get interactive help on available bot cmds
 Use /feedback cmd to contact bot owner'''
     if id_ in OWNER:
-        await client.send_message(message.chat.id, text=text, reply_markup=buttons)
+        await client.send_message(gid, text=text, reply_markup=buttons)
         await client.send_message(
-            message.chat.id,
+            gid,
             text="""Owners / Sudos can also use
 
 - __/term__ `to run a cmd in terminal`
@@ -291,11 +308,11 @@ Use /feedback cmd to contact bot owner'''
 Apart from above shown cmds"""
         )
     else:
-        if message.chat.id==message.from_user.id:
-            await client.send_message(message.chat.id, text=text, reply_markup=buttons)
+        if gid==id_:
+            await client.send_message(gid, text=text, reply_markup=buttons)
         else:
             await client.send_message(
-                message.chat.id,
+                gid,
                 text="Click below button for bot help",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Help", url=f"https://t.me/{bot_us}/?start=help")]])
             )
@@ -339,6 +356,7 @@ def help_btns(user):
 
 
 @Client.on_message(filters.user(OWNER) & filters.command(['stats', f'stats{BOT_NAME}'], prefixes=trg))
+@control_user
 async def stats_(client: Client, message: Message):
     st = dt.now()
     x = await message.reply_text("Collecting Stats!!!")
@@ -364,6 +382,7 @@ Stats:-
 
 
 @Client.on_message(filters.command(['ping', f'ping{BOT_NAME}'], prefixes=trg))
+@control_user
 async def pong_(client: Client, message: Message):
     find_gc = await DC.find_one({'_id': message.chat.id})
     if find_gc!=None and 'ping' in find_gc['cmd_list'].split():
@@ -376,6 +395,7 @@ async def pong_(client: Client, message: Message):
 
 
 @Client.on_message(filters.private & filters.command(['feedback', f'feedback{BOT_NAME}'], prefixes=trg))
+@control_user
 async def feed_(client: Client, message: Message):
     owner = await client.get_users(OWNER[0])
     await client.send_message(message.chat.id, f"For issues or queries please contact @{owner.username} or join @hanabi_support")
@@ -384,6 +404,7 @@ async def feed_(client: Client, message: Message):
 
 
 @Client.on_message(filters.command(['eval', f'eval{BOT_NAME}'], prefixes=trg) & filters.user(OWNER))
+@control_user
 async def eval(client: Client, message: Message):
     status_message = await message.reply_text("Processing ...")
     cmd = message.text.split(" ", maxsplit=1)[1]
@@ -436,6 +457,7 @@ async def aexec(code, client, message):
 
 
 @Client.on_message(filters.user(OWNER) & filters.command(["term", f"term{BOT_NAME}"], prefixes=trg))
+@control_user
 async def terminal(client: Client, message: Message):
     if len(message.text.split()) == 1:
         await message.reply_text("Usage: `/term echo owo`")

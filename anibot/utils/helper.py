@@ -3,6 +3,7 @@ import asyncio
 import os
 import shlex
 import mimetypes
+from time import time
 from os.path import basename
 from typing import Tuple, Optional
 from uuid import uuid4
@@ -13,6 +14,8 @@ from .. import OWNER, DOWN_PATH, anibot, LOG_CHANNEL_ID
 from ..utils.db import get_collection
 
 AUTH_USERS = get_collection("AUTH_USERS")
+IGNORE = get_collection("IGNORED_USERS")
+USER_JSON = {}
 
 
 ###### credits to blank-x/sukuinote ######
@@ -47,12 +50,77 @@ async def get_file_ext(filename):
 def rand_key():
     return str(uuid4())[:8]
 
+USER_WC = {}
+
+def control_user(func):
+    async def wrapper(_, msg: Message):
+        user = msg.from_user.id
+        if await IGNORE.find_one({'_id': user}):
+            return
+        if user not in OWNER:
+            nut = time()
+            try:
+                out = USER_JSON[user]
+                if nut-out<1.2:
+                    await asyncio.sleep(2)
+                    try:
+                        USER_WC[user] += 1
+                    except KeyError:
+                        USER_WC[user] = 1
+                    if USER_WC[user] == 3:
+                        await msg.reply_text(
+                            "Stop spamming bot!!!\nElse you will be blacklisted",
+                        )
+                    if USER_WC[user] == 5:
+                        await IGNORE.insert_one({'_id': user})
+                        await msg.reply_text('You have been exempted from using this bot now due to spamming 5 times consecutively!!!\nTo remove restriction plead to @hanabi_support')
+                        await clog('ANIBOT', f'UserID: {user}', 'SPAM')
+                        return
+                else:
+                    USER_WC[user] = 0
+            except KeyError:
+                pass
+            USER_JSON[user] = nut
+        try:
+            await func(_, msg)
+        except FloodWait as e:
+            await asyncio.sleep(e.x + 5)
+        except MessageNotModified:
+            pass
+    return wrapper
+
 
 def check_user(func):
     async def wrapper(_, c_q: CallbackQuery):
-        if c_q.from_user and (
-            c_q.from_user.id in OWNER or c_q.from_user.id==int(c_q.data.split("_").pop())
-        ):
+        user = c_q.from_user.id
+        if await IGNORE.find_one({'_id': user}):
+            return
+        if user in OWNER or user==int(c_q.data.split("_").pop()):
+            if user not in OWNER:
+                nt = time()
+                try:
+                    ot = USER_JSON[user]
+                    if nt-ot<1.2:
+                        await asyncio.sleep(2)
+                        try:
+                            USER_WC[user] += 1
+                        except KeyError:
+                            USER_WC[user] = 1
+                        if USER_WC[user] == 3:
+                            await c_q.answer(
+                                "Stop spamming bot!!!\nElse you will be blacklisted",
+                                show_alert=True,
+                            )
+                        if USER_WC[user] == 5:
+                            await IGNORE.insert_one({'_id': user})
+                            await c_q.answer('You have been exempted from using this bot now due to spamming 5 times consecutively!!!\nTo remove restriction plead to @hanabi_support', show_alert=True)
+                            await clog('ANIBOT', f'UserID: {user}', 'SPAM')
+                            return
+                        else:
+                            USER_WC[user] = 0
+                except KeyError:
+                    pass
+                USER_JSON[user] = nt
             try:
                 await func(_, c_q)
             except FloodWait as e:
@@ -223,7 +291,7 @@ def get_btns(media, user: int, result: list, lsqry: str = None, lspage: int = No
     pg = f"_{lspage}" if lspage != None else ""
     if media == "ANIME" and sfw == "False":
         buttons.append([
-            InlineKeyboardButton(text="Characters", callback_data=f"char_{result[2][0]}_ANI{qry}{pg}_{str(auth)}_{user}"),
+            InlineKeyboardButton(text="Characters", callback_data=f"char_{result[2][0]}_ANI{qry}{pg}_{str(auth)}_1_{user}"),
             InlineKeyboardButton(text="Description", callback_data=f"desc_{result[2][0]}_ANI{qry}{pg}_{str(auth)}_{user}"),
             InlineKeyboardButton(text="List Series", callback_data=f"ls_{result[2][0]}_ANI{qry}{pg}_{str(auth)}_{user}"),
         ])
@@ -295,7 +363,3 @@ def day_(x: int):
     if x == 4: return "Friday"
     if x == 5: return "Saturday"
     if x == 6: return "Sunday"
-
-
-async def authusers(id_):
-    return await AUTH_USERS.find_one({"id": id_})

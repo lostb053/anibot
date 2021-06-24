@@ -5,16 +5,18 @@ from pyrogram import Client, filters
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from .. import BOT_NAME, TRIGGERS as trg
 from ..utils.data_parser import get_wo, get_wols
-from ..utils.helper import check_user
+from ..utils.helper import check_user, control_user
 from ..utils.db import get_collection
 
 DC = get_collection('DISABLED_CMDS')
 
 
 @Client.on_message(filters.command(["watch", f"watch{BOT_NAME}"], prefixes=trg))
+@control_user
 async def get_watch_order(client: Client, message: Message):
     """Get List of Scheduled Anime"""
-    find_gc = await DC.find_one({'_id': message.chat.id})
+    gid = message.chat.id
+    find_gc = await DC.find_one({'_id': gid})
     if find_gc!=None and 'watch' in find_gc['cmd_list'].split():
         return
     x = message.text.split(" ", 1)
@@ -24,9 +26,12 @@ async def get_watch_order(client: Client, message: Message):
     data = get_wols(x[1])
     msg = f"Found related animes for the query {x[1]}"
     buttons = []
+    if data == []:
+        await client.send_message(gid, 'No results found!!!')
+        return
     for i in data:
         buttons.append([InlineKeyboardButton(str(i[1]), callback_data=f"watch_{i[0]}_{x[1]}_0_{user}")])
-    await client.send_message(message.chat.id, msg, reply_markup=InlineKeyboardMarkup(buttons))
+    await client.send_message(gid, msg, reply_markup=InlineKeyboardMarkup(buttons))
 
 
 @Client.on_callback_query(filters.regex(pattern=r"watch_(.*)"))

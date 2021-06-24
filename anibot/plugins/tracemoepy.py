@@ -13,7 +13,7 @@ from aiohttp import ClientSession
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, InputMediaPhoto, InputMediaVideo, Message
 from .. import BOT_NAME, TRIGGERS as trg
-from ..utils.helper import check_user, media_to_image, rand_key
+from ..utils.helper import check_user, control_user, media_to_image, rand_key
 from ..utils.data_parser import check_if_adult
 from ..utils.db import get_collection
 from .anilist import no_pic
@@ -24,9 +24,11 @@ DC = get_collection('DISABLED_CMDS')
 TRACE_MOE = {}
 
 @Client.on_message(filters.command(["reverse", f"reverse{BOT_NAME}"], prefixes=trg))
+@control_user
 async def trace_bek(client: Client, message: Message):
     """ Reverse Search Anime Clips/Photos """
-    find_gc = await DC.find_one({'_id': message.chat.id})
+    gid = message.chat.id
+    find_gc = await DC.find_one({'_id': gid})
     if find_gc!=None and 'reverse' in find_gc['cmd_list'].split():
         return
     x = await message.reply_text("Reverse searching the given media")
@@ -43,11 +45,11 @@ async def trace_bek(client: Client, message: Message):
             try:
                 search = await tracemoe.search(dls_loc, upload_file=True)
             except ServerError:
-                x.edit_text('ServerError, retrying')
+                await x.edit_text('ServerError, retrying')
                 try:
                     search = await tracemoe.search(dls_loc, upload_file=True)
                 except ServerError:
-                    x.edit_text('Couldnt parse results!!!')
+                    await x.edit_text('Couldnt parse results!!!')
                     return
             result = search["result"][0]
             caption_ = (
@@ -59,7 +61,7 @@ async def trace_bek(client: Client, message: Message):
             preview = result['video']
         button = []
         nsfw = False
-        if await check_if_adult(int(result['anilist']['id']))=="True" and await (SFW_GRPS.find_one({"id": message.chat.id})):
+        if await check_if_adult(int(result['anilist']['id']))=="True" and await (SFW_GRPS.find_one({"id": gid})):
             msg = no_pic[random.randint(0, 4)]
             caption="The results parsed seems to be 18+ and not allowed in this group"
             nsfw = True
@@ -69,7 +71,7 @@ async def trace_bek(client: Client, message: Message):
             button.append([InlineKeyboardButton("More Info", url=f"https://anilist.co/anime/{result['anilist']['id']}")])
         dls_js = rand_key()
         TRACE_MOE[dls_js] = dls_loc
-        button.append([InlineKeyboardButton("Next", callback_data=f"tracech_1_{dls_js}_{message.from_user.id}")])
+        button.append([InlineKeyboardButton("Next", callback_data=f"tracech_1_{dls_js}_{gid}")])
         await (message.reply_video if nsfw==False else message.reply_photo)(msg, caption=caption, reply_markup=InlineKeyboardMarkup(button))
     else:
         await message.reply_text("Couldn't parse results!!!")

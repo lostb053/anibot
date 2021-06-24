@@ -1,7 +1,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
 from ..utils.data_parser import search_filler, parse_filler
-from ..utils.helper import check_user, rand_key
+from ..utils.helper import check_user, control_user, rand_key
 from ..utils.db import get_collection
 from .. import BOT_NAME, TRIGGERS as trg
 
@@ -9,6 +9,7 @@ FILLERS = {}
 DC = get_collection('DISABLED_CMDS')
 
 @Client.on_message(filters.command(['fillers', f"fillers{BOT_NAME}"], prefixes=trg))
+@control_user
 async def fillers_cmd(client: Client, message: Message):
     find_gc = await DC.find_one({'_id': message.chat.id})
     if find_gc!=None and 'watch' in find_gc['cmd_list'].split():
