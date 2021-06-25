@@ -62,7 +62,6 @@ def control_user(func):
             try:
                 out = USER_JSON[user]
                 if nut-out<1.2:
-                    await asyncio.sleep(2)
                     try:
                         USER_WC[user] += 1
                     except KeyError:
@@ -76,6 +75,7 @@ def control_user(func):
                         await msg.reply_text('You have been exempted from using this bot now due to spamming 5 times consecutively!!!\nTo remove restriction plead to @hanabi_support')
                         await clog('ANIBOT', f'UserID: {user}', 'SPAM')
                         return
+                    await asyncio.sleep(USER_WC[user])
                 else:
                     USER_WC[user] = 0
             except KeyError:
