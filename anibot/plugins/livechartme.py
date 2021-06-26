@@ -86,7 +86,7 @@ async def livechart_parser():
         msgscr.append([f"**New anime released on Crunchyroll**\n\n**Title:** {i}\n**Episode:** {hmm[len(hmm)-1]+' - '+hmm[0] if len(hmm)!=1 and hmm[len(hmm)-1]!=hmm[0] else hmm[0]}\n{'**EP Title:** '+ii[1] if len(ii)==3 else ''}", ii[1] if len(ii)!=3 else ii[2]])
 #########################
 
-    print('Notifying Livachart.me airings!!!')
+    print('Notifying Livechart.me airings!!!')
     for i in msgslc:
         if await AIRING_GRPS.find_one() != None:
             async for id_ in AIRING_GRPS.find():
