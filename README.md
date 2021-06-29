@@ -10,6 +10,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * Update Anilist entry using bot
 * Anime fillers from [animefillerslist](https://www.animefillerlist.com)
 * Anime Airing notifications from [LiveChart](https://livechart.me)
+* Anime release notifications for [Crunchyroll](https://crunchyroll.com)
 * Anime Reverse Search Powered by [tracemoepy](https://github.com/dragsama/tracemoepy)
 * Watch Order from [Chiaki](https://chiaki.site/) using [web api](https://chiaki.vercel.app)
 <h3>Also can add to grps and enable sfw lock to prevent members from looking up hentai and 18+ rated stuff<br>Also includes command disabling</h3>
