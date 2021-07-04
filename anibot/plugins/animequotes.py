@@ -9,6 +9,10 @@ DC = get_collection('DISABLED_CMDS')
 @Client.on_message(filters.command(["quote", f"quote{BOT_NAME}"], prefixes=trg))
 @control_user
 def truth(_, message):
+    gid = message.chat.id
+    find_gc = await DC.find_one({'_id': gid})
+    if find_gc!=None and 'quote' in find_gc['cmd_list'].split():
+        return
     quote = requests.get("https://animechan.vercel.app/api/random").json()
     quote = quote.get("quote")
     message.reply_text(quote)
