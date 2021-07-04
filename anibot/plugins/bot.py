@@ -42,7 +42,8 @@ CMD = [
     'user',
     'favourites',
     'gettags',
-    'getgenres'
+    'getgenres',
+    'quote'
 ]
 
 
