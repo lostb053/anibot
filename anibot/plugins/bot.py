@@ -6,22 +6,39 @@ import re
 import subprocess
 import asyncio
 import requests
-from datetime import datetime as dt
+import tracemoepy
+from bson.objectid import ObjectId
+from bs4 import BeautifulSoup as bs
+from datetime import datetime
 from natsort import natsorted
 from pyrogram import Client, filters
 from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from pyrogram.errors import ChannelInvalid as ci, ChannelPrivate as cp, PeerIdInvalid as pi, FloodWait as fw
-from .. import BOT_NAME, TRIGGERS as trg, OWNER, HELP_DICT, anibot
+from .. import BOT_NAME, TRIGGERS as trg, OWNER, HELP_DICT, anibot, DOWN_PATH, LOG_CHANNEL_ID
 from ..utils.db import get_collection
-from ..utils.helper import AUTH_USERS, clog, check_user, control_user
-from ..utils.data_parser import get_additional_info
-from .anilist import auth_link_cmd
+from ..utils.helper import (
+    AUTH_USERS, clog, check_user, control_user, rand_key, return_json_senpai,
+    runcmd, take_screen_shot, IGNORE, media_to_image, make_it_rw,
+    USER_JSON, USER_WC
+)
+from ..utils.data_parser import (
+    get_all_genres, get_all_tags, get_top_animes, get_user_activity, get_user_favourites, toggle_favourites, parse_filler,
+    get_anime, get_airing, get_anilist, get_character, get_additional_info, get_manga, browse_, get_wo, get_wols, AIR_QUERY,
+    get_featured_in_lists, update_anilist, get_user, ANIME_DB, MANGA_DB, CHAR_DB, get_scheduled, search_filler, ANIME_QUERY,
+    ACTIVITY_QUERY, ALLTOP_QUERY, ANILIST_MUTATION, ANILIST_MUTATION_DEL, ANILIST_MUTATION_UP, ANIME_MUTATION, BROWSE_QUERY,
+    ANIME_TEMPLATE, CHA_INFO_QUERY, CHAR_MUTATION, CHARACTER_QUERY, DES_INFO_QUERY, DESC_INFO_QUERY, FAV_ANI_QUERY, GET_TAGS,
+    FAV_CHAR_QUERY, FAV_MANGA_QUERY, GET_GENRES, ISADULT, LS_INFO_QUERY, MANGA_MUTATION, MANGA_QUERY, PAGE_QUERY, TOP_QUERY,
+    REL_INFO_QUERY, TOPT_QUERY, USER_QRY, VIEWER_QRY
+)
+from .anilist import auth_link_cmd, code_cmd
 
 USERS = get_collection("USERS")
 GROUPS = get_collection("GROUPS")
 SFW_GROUPS = get_collection("SFW_GROUPS")
 DC = get_collection('DISABLED_CMDS')
 AG = get_collection('AIRING_GROUPS')
+CR_GRPS = get_collection('CRUNCHY_GROUPS')
+SP_GRPS = get_collection('SUBSPLEASE_GROUPS')
 CMD = [
     'anime',
     'anilist',
@@ -42,8 +59,8 @@ CMD = [
     'user',
     'favourites',
     'gettags',
-    'getgenres',
-    'quote'
+    'quote',
+    'getgenres'
 ]
 
 
@@ -130,9 +147,9 @@ async def list_disabled(client: Client, message: Message):
 async def db_cleanup(client: Client, message: Message):
     count = 0
     entries = ""
-    st = dt.now()
+    st = datetime.now()
     x = await message.reply_text("Starting database cleanup in 5 seconds")
-    et = dt.now()
+    et = datetime.now()
     pt = (et-st).microseconds / 1000
     await asyncio.sleep(5)
     await x.edit_text("Checking 1st collection!!!")
@@ -174,12 +191,12 @@ async def db_cleanup(client: Client, message: Message):
             await client.get_chat(i['_id'])
         except cp:
             count += 1
-            entries += str(await DC.find_one({'id': i['id']}))+'\n\n'
-            await DC.find_one_and_delete({'id': i['_id']})
+            entries += str(await DC.find_one({'_id': i['_id']}))+'\n\n'
+            await DC.find_one_and_delete({'_id': i['_id']})
         except ci:
             count += 1
-            entries += str(await DC.find_one({'id': i['id']}))+'\n\n'
-            await DC.find_one_and_delete({'id': i['_id']})
+            entries += str(await DC.find_one({'_id': i['_id']}))+'\n\n'
+            await DC.find_one_and_delete({'_id': i['_id']})
         except fw:
             await asyncio.sleep(fw.x + 5)
     await asyncio.sleep(5)
@@ -190,11 +207,11 @@ async def db_cleanup(client: Client, message: Message):
             await client.get_chat(i['_id'])
         except cp:
             count += 1
-            entries += str(await AG.find_one({'id': i['id']}))+'\n\n'
+            entries += str(await AG.find_one({'id': i['_id']}))+'\n\n'
             await AG.find_one_and_delete({'_id': i['_id']})
         except ci:
             count += 1
-            entries += str(await AG.find_one({'id': i['id']}))+'\n\n'
+            entries += str(await AG.find_one({'id': i['_id']}))+'\n\n'
             await AG.find_one_and_delete({'_id': i['_id']})
         except fw:
             await asyncio.sleep(fw.x + 5)
@@ -210,6 +227,40 @@ async def db_cleanup(client: Client, message: Message):
             await AUTH_USERS.find_one_and_delete({'id': i['id']})
         except fw:
             await asyncio.sleep(fw.x + 5)
+    await asyncio.sleep(5)
+    await x.edit_text("Checking 6th collection!!!")
+    async for i in CR_GRPS.find():
+        await asyncio.sleep(2)
+        try:
+            await client.get_chat(i['_id'])
+        except cp:
+            count += 1
+            entries += str(await CR_GRPS.find_one({'_id': i['_id']}))+'\n\n'
+            await CR_GRPS.find_one_and_delete({'_id': i['_id']})
+        except ci:
+            count += 1
+            entries += str(await CR_GRPS.find_one({'_id': i['_id']}))+'\n\n'
+            await CR_GRPS.find_one_and_delete({'_id': i['_id']})
+        except fw:
+            await asyncio.sleep(fw.x + 5)
+    await asyncio.sleep(5)
+    await x.edit_text("Checking 7th collection!!!")
+    async for i in SP_GRPS.find():
+        await asyncio.sleep(2)
+        try:
+            await client.get_chat(i['_id'])
+        except cp:
+            count += 1
+            entries += str(await SP_GRPS.find_one({'_id': i['_id']}))+'\n\n'
+            await SP_GRPS.find_one_and_delete({'_id': i['_id']})
+        except ci:
+            count += 1
+            entries += str(await SP_GRPS.find_one({'_id': i['_id']}))+'\n\n'
+            await SP_GRPS.find_one_and_delete({'_id': i['_id']})
+        except fw:
+            await asyncio.sleep(fw.x + 5)
+    await asyncio.sleep(5)
+
     nosgrps = await GROUPS.estimated_document_count()
     nossgrps = await SFW_GROUPS.estimated_document_count()
     nosauus = await AUTH_USERS.estimated_document_count()    
@@ -231,7 +282,7 @@ async def db_cleanup(client: Client, message: Message):
 
 **Ping:** `{pt}`
 """
-        if len(entries)<4095:
+        if len(entries)>4095:
             with open('entries.txt', "w+") as file:
                 file.write(entries)
             return await x.reply_document('entries.txt')
@@ -265,6 +316,11 @@ async def start_(client: Client, message: Message):
                 pic, result = await get_additional_info(deep_cmd.split("_")[2], "desc", deep_cmd.split("_")[1])
                 await client.send_photo(user, pic)
                 await client.send_message(user, result.replace("~!", "").replace("!~", ""))
+                return
+            if deep_cmd.split("_", 1)[0]=="code":
+                qry = deep_cmd.split("_", 1)[1]
+                k = await AUTH_USERS.find_one({'_id': ObjectId(qry)})
+                await code_cmd(k['code'], message)
                 return
         await client.send_message(
             gid,
@@ -321,7 +377,7 @@ Apart from above shown cmds"""
 
 @Client.on_callback_query(filters.regex(pattern=r"help_(.*)"))
 @check_user
-async def help_dicc_parser(clinet, cq: CallbackQuery):
+async def help_dicc_parser(client, cq: CallbackQuery):
     await cq.answer()
     kek, qry, user = cq.data.split("_")
     text = HELP_DICT[qry]
@@ -359,14 +415,17 @@ def help_btns(user):
 @Client.on_message(filters.user(OWNER) & filters.command(['stats', f'stats{BOT_NAME}'], prefixes=trg))
 @control_user
 async def stats_(client: Client, message: Message):
-    st = dt.now()
+    st = datetime.now()
     x = await message.reply_text("Collecting Stats!!!")
-    et = dt.now()
+    et = datetime.now()
     pt = (et-st).microseconds / 1000
     nosus = await USERS.estimated_document_count()
     nosauus = await AUTH_USERS.estimated_document_count()
     nosgrps = await GROUPS.estimated_document_count()
     nossgrps = await SFW_GROUPS.estimated_document_count()
+    s = await SP_GRPS.estimated_document_count()
+    a = await AG.estimated_document_count()
+    c = await CR_GRPS.estimated_document_count()
     kk = requests.get("https://api.github.com/repos/lostb053/anibot").json()
     await x.edit_text(f"""
 Stats:-
@@ -374,6 +433,9 @@ Stats:-
 **Users:** {nosus}
 **Authorised Users:** {nosauus}
 **Groups:** {nosgrps}
+**Airing Groups:** {a}
+**Crunchyroll Groups:** {c}
+**Subsplease Groups:** {s}
 **SFW Groups:** {nossgrps}
 **Stargazers:** {kk.get("stargazers_count")}
 **Forks:** {kk.get("forks")}
@@ -388,9 +450,9 @@ async def pong_(client: Client, message: Message):
     find_gc = await DC.find_one({'_id': message.chat.id})
     if find_gc!=None and 'ping' in find_gc['cmd_list'].split():
         return
-    st = dt.now()
+    st = datetime.now()
     x = await message.reply_text("Ping...")
-    et = dt.now()
+    et = datetime.now()
     pt = (et-st).microseconds / 1000
     await x.edit_text(f"__Pong!!!__\n`{pt} ms`")
 

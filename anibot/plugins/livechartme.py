@@ -10,27 +10,36 @@ from ..utils.db import get_collection
 
 url_a = "https://www.livechart.me/feeds/episodes"
 url_b = 'https://feeds.feedburner.com/crunchyroll/rss/anime?format=xml'
+url_c = 'https://subsplease.org/rss/?t'
 A = get_collection('AIRING_TITLE')
 B = get_collection('CRUNCHY_TITLE')
-AIRING_GRPS = get_collection('AIRING_GROUPS')
+C = get_collection('SUBSPLEASE_TITLE')
+AR_GRPS = get_collection('AIRING_GROUPS')
 CR_GRPS = get_collection('CRUNCHY_GROUPS')
+SP_GRPS = get_collection('SUBSPLEASE_GROUPS')
 
 async def livechart_parser():
     print('Parsing data from rss')
-    da = bs(requests.get(url_a).text, features="html.parser")
-    db = bs(requests.get(url_b).text, features="html.parser")
+    da = bs(requests.get(url_a).text, features="xml")
+    db = bs(requests.get(url_b).text, features="xml")
+    dc = bs(requests.get(url_c).text, features='xml')
     if (await A.find_one())==None:
         await A.insert_one({'_id': str(da.find('item').find('title'))})
         return
     if (await B.find_one())==None:
         await B.insert_one({'_id': str(db.find('item').find('title'))})
         return
+    if (await C.find_one())==None:
+        await C.insert_one({'_id': str(dc.find('item').find('title'))})
+        return
     count_a = 0
     count_b = 0
     msgslc = []
     msgscr = []
+    msgssp = []
     lc = []
     cr = []
+    sp = []
 
 
 #### LiveChart.me ####
@@ -86,10 +95,36 @@ async def livechart_parser():
         msgscr.append([f"**New anime released on Crunchyroll**\n\n**Title:** {i}\n**Episode:** {hmm[len(hmm)-1]+' - '+hmm[0] if len(hmm)!=1 and hmm[len(hmm)-1]!=hmm[0] else hmm[0]}\n{'**EP Title:** '+ii[1] if len(ii)==3 else ''}", ii[1] if len(ii)!=3 else ii[2]])
 #########################
 
-    print('Notifying Livechart.me airings!!!')
+
+##### Subsplease.org #####
+    ls = defaultdict(list)
+    for i in dc.findAll('item'):
+        if (await C.find_one())['_id'] in str(i.find('title')):
+            break
+        text = re.sub(r'.*\[.+?\] (.+) (\(.+p\)) \[.+?\].*', r'\1__________\2', str(i.find('title')))
+        link = re.sub(r'.*<.+?>(.+)<.+?>.*', r'\1', str(i.find('link')))
+        sp.append([text, link])
+    for i in sp:
+        hmm = i[0].split('__________')
+        ls[hmm[0]].append([hmm[1].replace(')', '').replace('(', ''), i[1]])
+    updated = False
+    for i in ls.keys():
+        if len(ls[i])==3:
+            if not updated:
+                await C.drop()
+                await C.insert_one({'_id': i})
+                updated = True
+            listlinks = ""
+            for ii in ls[i]:
+                listlinks += '\n__'+ii[0]+'__: [Link]('+ii[1]+')'
+            msgssp.append(['**New anime uploaded on Subsplease**\n\n' + i + listlinks, 'https://nyaa.si/?q='+re.sub(r' ', '%20', re.sub(r'(\().*?(\))', r'', i).strip())])
+##########################
+
+
+    print('Notifying Livachart.me airings!!!')
     for i in msgslc:
-        if await AIRING_GRPS.find_one() != None:
-            async for id_ in AIRING_GRPS.find():
+        if await AR_GRPS.find_one() != None:
+            async for id_ in AR_GRPS.find():
                 btn = InlineKeyboardMarkup([[InlineKeyboardButton("More Info", url=i[1])]])
                 await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
                 await asyncio.sleep(1.5)
@@ -101,8 +136,16 @@ async def livechart_parser():
                 btn = InlineKeyboardMarkup([[InlineKeyboardButton("More Info", url=i[1])]])
                 await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
                 await asyncio.sleep(1.5)
+    await asyncio.sleep(10)
+    print('Notifying Subsplease releases!!!')
+    for i in msgssp:
+        if await SP_GRPS.find_one() != None:
+            async for id_ in SP_GRPS.find():
+                btn = InlineKeyboardMarkup([[InlineKeyboardButton("Download", url=i[1])]])
+                await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
+                await asyncio.sleep(1.5)
 
 
 scheduler = AsyncIOScheduler()
-scheduler.add_job(livechart_parser, "interval", minutes=15)
+scheduler.add_job(livechart_parser, "interval", minutes=4)
 scheduler.start()

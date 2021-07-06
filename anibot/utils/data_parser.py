@@ -1,7 +1,7 @@
 import requests
 import time
 from bs4 import BeautifulSoup
-from .helper import cflag, make_it_rw, pos_no, return_json_senpai, day_
+from .helper import cflag, make_it_rw, pos_no, return_json_senpai, day_, season_
 from .. import BOT_NAME
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from jikanpy import AioJikan
@@ -78,6 +78,19 @@ ISADULT = """
 query ($id: Int) {
   Media (id: $id) {
     isAdult
+  }
+}
+"""
+
+BROWSE_QUERY = """
+query ($s: MediaSeason, $y: Int, $sort: [MediaSort]) {
+  Page {
+    media (season: $s, seasonYear: $y, sort: $sort) {
+    	title {
+        romaji
+      }
+      format
+    }
   }
 }
 """
@@ -966,6 +979,24 @@ __{native}__
     return img, [cap_text, total], [id_, isfav]
 
 
+async def browse_(qry: str):
+    s, y = season_()
+    sort = "POPULARITY_DESC"
+    if qry == 'upcoming':
+        s, y = season_(True)
+    if qry == 'trending':
+        sort = "TRENDING_DESC"
+    vars_ = {"s": s, "y": y, "sort": sort}
+    result = await return_json_senpai(BROWSE_QUERY, vars_)
+    data = result["data"]["Page"]["media"]
+    ls = []
+    for i in data:
+        if i['format'] in ['TV', 'MOVIE', 'ONA']:
+            ls.append('• `' + i['title']['romaji'] + '`')
+    out = f'{qry.capitalize()} animes in {s} {y}:\n\n'
+    return out + "\n".join(ls[:20])
+
+
 async def get_manga(qdb, page, auth: bool = False, user: int = None):
     vars_ = {"search": MANGA_DB[qdb], "asHtml": True, "page": page}
     result = await return_json_senpai(MANGA_QUERY, vars_, auth=auth, user=user)
@@ -1031,7 +1062,7 @@ async def get_airing(vars_, auth: bool = False, user: int = None):
     error = result.get("errors")
     if error:
         error_sts = error[0].get("message")
-        return f"[{error_sts}]"
+        return [f"{error_sts}"]
     data = result["data"]["Media"]
     # Airing Details
     mid = data.get("id")

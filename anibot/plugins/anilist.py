@@ -17,7 +17,7 @@ from pyrogram.errors import UserNotParticipant
 from .. import ANILIST_CLIENT, ANILIST_REDIRECT_URL, ANILIST_SECRET, OWNER, TRIGGERS as trg, BOT_NAME
 from ..utils.data_parser import (
     get_all_genres, get_all_tags, get_top_animes, get_user_activity, get_user_favourites, toggle_favourites,
-    get_anime, get_airing, get_anilist, get_character, get_additional_info, get_manga,
+    get_anime, get_airing, get_anilist, get_character, get_additional_info, get_manga, browse_,
     get_featured_in_lists, update_anilist, get_user, ANIME_DB, MANGA_DB, CHAR_DB
 )
 from ..utils.helper import check_user, get_btns, AUTH_USERS, rand_key, clog, control_user
@@ -28,6 +28,7 @@ SFW_GRPS = get_collection("SFW_GROUPS")
 DC = get_collection('DISABLED_CMDS')
 AG = get_collection('AIRING_GROUPS')
 CG = get_collection('CRUNCHY_GROUPS')
+SG = get_collection('SUBSPLEASE_GROUPS')
 
 no_pic = [
     'https://telegra.ph/file/0d2097f442e816ba3f946.jpg',
@@ -46,9 +47,7 @@ async def anime_cmd(client: Client, message: Message):
     gid = message.chat.id
     gidtitle = message.chat.username or message.chat.title
     gidtype = message.chat
-    user = gid
-    if gidtype in ["supergroup", "group"]:
-        user = message.from_user.id
+    user = message.from_user.id
     if gidtype in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid})):
         await GROUPS.insert_one({"id": gid, "grp": gidtitle})
         await clog("ANIBOT", f"Bot added to a new group\n\n{gidtitle}\nID: `{gid}`", "NEW_GROUP")
@@ -88,9 +87,7 @@ async def manga_cmd(client: Client, message: Message):
     gid = message.chat.id
     gidtitle = message.chat.username or message.chat.title
     gidtype = message.chat
-    user = gid
-    if gidtype in ["supergroup", "group"]:
-        user = message.from_user.id
+    user = message.from_user.id
     if gidtype in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid})):
         await GROUPS.insert_one({"id": gid, "grp": gidtitle})
         await clog("ANIBOT", f"Bot added to a new group\n\n{gidtitle}\nID: `{gid}`", "NEW_GROUP")
@@ -129,9 +126,7 @@ async def character_cmd(client: Client, message: Message):
     gid = message.chat.id
     gidtype = message.chat.type
     gidtitle = message.chat.username or message.chat.title
-    user = gid
-    if gidtype in ["supergroup", "group"]:
-        user = message.from_user.id
+    user = message.from_user.id
     if gidtype in ["supergroup", "group"] and not await (GROUPS.find_one({"id": gid})):
         await GROUPS.insert_one({"id": gid, "grp": gidtitle})
         await clog("ANIBOT", f"Bot added to a new group\n\n{gidtitle}\nID: `{gid}`", "NEW_GROUP")
@@ -283,19 +278,22 @@ async def airing_cmd(client: Client, message: Message):
     await client.send_photo(gid, coverImg, caption=out, reply_markup=btn)
 
 
-@Client.on_message(filters.private & filters.command("auth", prefixes=trg))
+@Client.on_message(filters.command("auth", prefixes=trg))
 @control_user
 async def auth_link_cmd(client, message: Message):
-    await message.reply_text(
-        text = """Follow the steps to complete Authorization:
-1. Click the below button
-2. Authorize the app and copy the authorization code
-3. Send the code along with cmd /code like '/code <u>auth code from website</u>'""",
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
-            text="Authorize",
-            url=f"https://anilist.co/api/v2/oauth/authorize?client_id={ANILIST_CLIENT}&redirect_uri={ANILIST_REDIRECT_URL}&response_type=code"
-        )]])
-    )
+    if message.chat.id==message.from_user.id:
+        await message.reply_text(
+            text = "Click the below button to authorize yourself",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
+                text="Authorize",
+                url=f"https://anilist.co/api/v2/oauth/authorize?client_id={ANILIST_CLIENT}&redirect_uri={ANILIST_REDIRECT_URL}&response_type=code"
+            )]])
+        )
+    else:
+        await message.reply_text(
+            "Go to bot pm to authorize yourself!!!",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Auth", url=f"https://t.me/{BOT_NAME.replace('@', '')}/?start=auth")]])
+        )
 
 
 @Client.on_message(~filters.private & filters.command(["settings", f"settings{BOT_NAME}"], prefixes=trg))
@@ -310,6 +308,7 @@ This allows you to change group settings
 NSFW toggle switches on filtering of 18+ marked content
 Airing notifications notifies about airing of anime in recent
 Crunchyroll updates will toggle notifications about release of animes on crunchyroll site
+Subsplease updates will toggle notifications about release of animes on subsplease site
 """
         sfw = "NSFW: Allowed"
         if await (SFW_GRPS.find_one({"id": cid})):
@@ -320,25 +319,21 @@ Crunchyroll updates will toggle notifications about release of animes on crunchy
         cr = "Crunchyroll Updates: OFF"
         if await (CG.find_one({"_id": cid})):
             cr = "Crunchyroll Updates: ON"
+        sp = "Subsplease Updates: OFF"
+        if await (SG.find_one({"_id": cid})):
+            sp = "Subsplease Updates: ON"
         await message.reply_text(
             text = text,
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton(text=sfw, callback_data=f"settogl_sfw_{cid}")],
                 [InlineKeyboardButton(text=notif, callback_data=f"settogl_notif_{cid}")],
-                [InlineKeyboardButton(text=cr, callback_data=f"settogl_cr_{cid}")]
+                [InlineKeyboardButton(text=cr, callback_data=f"settogl_cr_{cid}")],
+                [InlineKeyboardButton(text=sp, callback_data=f"settogl_sp_{cid}")]
             ])
         )
 
 
-@Client.on_message(filters.private & filters.command("code", prefixes=trg))
-@control_user
-async def code_cmd(client, message: Message):
-    text = message.text.split(" ", 1)
-    if len(text)==1:
-        k = await message.reply_text("Needs code!!!")
-        await asyncio.sleep(5)
-        return await k.delete()
-    query = text[1]
+async def code_cmd(code: str, message: Message):
     headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -348,7 +343,7 @@ async def code_cmd(client, message: Message):
         'client_id': ANILIST_CLIENT,
         'client_secret': ANILIST_SECRET,
         'redirect_uri': ANILIST_REDIRECT_URL,
-        'code': query
+        'code': code
     }
     us_ = message.from_user.id
     if (await AUTH_USERS.find_one({"id": us_})):
@@ -357,8 +352,9 @@ async def code_cmd(client, message: Message):
     if response.get("access_token"):
         await AUTH_USERS.insert_one({"id": us_, "token": response.get("access_token")})
         await message.reply_text("Authorization Successfull!!!" )
+        await AUTH_USERS.find_one_and_delete({'code': code})
     else:
-        await message.reply_text("Please verify code, or get new one from website!!!")
+        await message.reply_text("Please retry authorization process!!!\nSomething unexpected happened")
 
 
 @Client.on_message(filters.command(["me", f"me{BOT_NAME}", "activity", f"activity{BOT_NAME}"], prefixes=trg))
@@ -423,6 +419,22 @@ async def logout_cmd(client, message: Message):
         await message.reply_text("Logged out!!!")
     else:
         await message.reply_text("You are not authorized to begin with!!!")
+
+
+@Client.on_message(filters.command(["browse", f"browse{BOT_NAME}"], prefixes=trg))
+@control_user
+async def logout_cmd(client: Client, message: Message):
+    user = message.from_user.id
+    up = 'Upcoming'
+    tr = '• Trending •'
+    pp = 'Popular'
+    btns = [[
+        InlineKeyboardButton(tr, callback_data=f'browse_{tr.lower()}_{user}'),
+        InlineKeyboardButton(pp, callback_data=f'browse_{pp.lower()}_{user}'),
+        InlineKeyboardButton(up, callback_data=f'browse_{up.lower()}_{user}'),
+    ]]
+    msg = await browse_('trending')
+    await client.send_message(message.chat.id, msg, reply_markup=InlineKeyboardMarkup(btns))
 
 
 @Client.on_message(filters.command(["gettags", f"gettags{BOT_NAME}", "getgenres", f"getgenres{BOT_NAME}"], prefixes=trg))
@@ -520,6 +532,10 @@ async def nsfw_toggle_btn(client, cq: CallbackQuery):
         cr = "Crunchyroll Updates: ON"
     else:
         cr = "Crunchyroll Updates: OFF"
+    if await (SG.find_one({"_id": int(query[2])})):
+        sp = "Subsplease Updates: ON"
+    else:
+        sp = "Subsplease Updates: OFF"
     if query[1]=="sfw":
         if await (SFW_GRPS.find_one({"id": int(query[2])})):
             await SFW_GRPS.find_one_and_delete({"id": int(query[2])})
@@ -541,10 +557,18 @@ async def nsfw_toggle_btn(client, cq: CallbackQuery):
         else:
             await CG.insert_one({"_id": int(query[2])})
             cr = "Crunchyroll Updates: ON"
+    if query[1]=="sp":
+        if await (SG.find_one({"_id": int(query[2])})):
+            await SG.find_one_and_delete({"_id": int(query[2])})
+            sp = "Subsplease Updates: OFF"
+        else:
+            await SG.insert_one({"_id": int(query[2])})
+            sp = "Subsplease Updates: ON"
     btns = InlineKeyboardMarkup([
         [InlineKeyboardButton(text=sfw, callback_data=f"settogl_sfw_{query[2]}")],
         [InlineKeyboardButton(text=notif, callback_data=f"settogl_notif_{query[2]}")],
-        [InlineKeyboardButton(text=cr, callback_data=f"settogl_cr_{query[2]}")]
+        [InlineKeyboardButton(text=cr, callback_data=f"settogl_cr_{query[2]}")],
+        [InlineKeyboardButton(text=sp, callback_data=f"settogl_sp_{query[2]}")]
     ])
     await cq.edit_message_reply_markup(reply_markup=btns)
 
@@ -665,6 +689,24 @@ async def list_update_anilist_btn(client, cq: CallbackQuery):
     await cq.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(btns))
 
 
+@Client.on_callback_query(filters.regex(pattern=r"browse_(upcoming|trending|popular)_(.*)"))
+@check_user
+async def browse_btn(client, cq: CallbackQuery):
+    query = cq.data.split("_")
+    if '•' in query[1]:
+        return
+    msg = await browse_(query[1])
+    up = 'Upcoming' if query[1]!='upcoming' else '• Upcoming •'
+    tr = 'Trending' if query[1]!='trending' else '• Trending •'
+    pp = 'Popular' if query[1]!='popular' else '• Popular •'
+    btns = [[
+        InlineKeyboardButton(tr, callback_data=f'browse_{tr.lower()}_{query[2]}'),
+        InlineKeyboardButton(pp, callback_data=f'browse_{pp.lower()}_{query[2]}'),
+        InlineKeyboardButton(up, callback_data=f'browse_{up.lower()}_{query[2]}'),
+    ]]
+    await cq.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(btns))
+
+
 @Client.on_callback_query(filters.regex(pattern=r"(lsas|lsus|dlt)_(.*)"))
 @check_user
 async def update_anilist_btn(client, cq: CallbackQuery):
@@ -700,6 +742,7 @@ async def update_anilist_btn(client, cq: CallbackQuery):
     if rslt=="ok":
         await cq.answer("Updated")
     else:
+        await cq.answer("Something unexpected happened and operation failed successfully", show_alert=True)
         return
     result = (
         (await get_anime({"id": idm}, auth=True, user=user)) if query[2]=="ANIME" and (len(query)==5 or len(query)==6)
@@ -748,10 +791,14 @@ async def additional_info_btn(client: Client, cq: CallbackQuery):
     button = []
     spoiler = False
     bot = (await client.get_me()).username
-    if "~!" in result and "!~" in result:
-        result = re.sub(r"~!.*!~", "[Spoiler]", result)
-        spoiler = True
-        button.append([InlineKeyboardButton(text="View spoiler", url=f"https://t.me/{bot}/?start=des_{ctgry}_{query}")])
+    try:
+        if "~!" in result and "!~" in result:
+            result = re.sub(r"~!.*!~", "[Spoiler]", result)
+            spoiler = True
+            button.append([InlineKeyboardButton(text="View spoiler", url=f"https://t.me/{bot}/?start=des_{ctgry}_{query}")])
+    except TypeError:
+        await cq.answer('No description available!!!')
+        return
     if len(result) > 1000:
         result = result[:940] + "..."
         if spoiler==False:

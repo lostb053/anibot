@@ -7,8 +7,9 @@ tracemoepy
 lottie
 bs4
 motor
-python-rapidjson>=0.9.3
 dnspython
 jikanpy
 natsort
 apscheduler
+lxml
+html5lib

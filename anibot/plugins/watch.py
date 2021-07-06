@@ -22,6 +22,7 @@ async def get_watch_order(client: Client, message: Message):
     x = message.text.split(" ", 1)
     if len(x)==1:
         await message.reply_text("Nothing given to search for!!!")
+        return
     user = message.from_user.id
     data = get_wols(x[1])
     msg = f"Found related animes for the query {x[1]}"

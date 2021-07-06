@@ -2,8 +2,8 @@ import requests
 import asyncio
 import os
 import shlex
-import mimetypes
 from time import time
+from datetime import datetime
 from os.path import basename
 from typing import Tuple, Optional
 from uuid import uuid4
@@ -16,33 +16,8 @@ from ..utils.db import get_collection
 AUTH_USERS = get_collection("AUTH_USERS")
 IGNORE = get_collection("IGNORED_USERS")
 USER_JSON = {}
+USER_WC = {}
 
-
-###### credits to blank-x/sukuinote ######
-
-
-async def get_file_mimetype(filename):
-    mimetype = mimetypes.guess_type(filename)[0]
-    if not mimetype:
-        proc = await asyncio.create_subprocess_exec('file', '--brief', '--mime-type', filename, stdout=asyncio.subprocess.PIPE)
-        stdout, _ = await proc.communicate()
-        mimetype = stdout.decode().strip()
-    return mimetype or ''
-
-
-async def get_file_ext(filename):
-    proc = await asyncio.create_subprocess_exec('file', '--brief', '--extension', filename, stdout=asyncio.subprocess.PIPE)
-    stdout, _ = await proc.communicate()
-    ext = stdout.decode().strip().split('/', maxsplit=1)[0]
-    if not ext or ext == '???':
-        mimetype = await get_file_mimetype(filename)
-        ext = mimetypes.guess_extension(mimetype) or '.bin'
-    if not ext.startswith('.'):
-        ext = '.' + ext
-    return ext
-
-
-##########################################
 
 ###### credits to @deleteduser420 on tg, code from USERGE-X ######
 
@@ -50,22 +25,18 @@ async def get_file_ext(filename):
 def rand_key():
     return str(uuid4())[:8]
 
-USER_WC = {}
 
 def control_user(func):
     async def wrapper(_, msg: Message):
         user = msg.from_user.id
         if await IGNORE.find_one({'_id': user}):
             return
+        nut = time()
         if user not in OWNER:
-            nut = time()
             try:
                 out = USER_JSON[user]
                 if nut-out<1.2:
-                    try:
-                        USER_WC[user] += 1
-                    except KeyError:
-                        USER_WC[user] = 1
+                    USER_WC[user] += 1
                     if USER_WC[user] == 3:
                         await msg.reply_text(
                             "Stop spamming bot!!!\nElse you will be blacklisted",
@@ -73,7 +44,7 @@ def control_user(func):
                     if USER_WC[user] == 5:
                         await IGNORE.insert_one({'_id': user})
                         await msg.reply_text('You have been exempted from using this bot now due to spamming 5 times consecutively!!!\nTo remove restriction plead to @hanabi_support')
-                        await clog('ANIBOT', f'UserID: {user}', 'SPAM')
+                        await clog('ANIBOT', f'UserID: {user}', 'BAN')
                         return
                     await asyncio.sleep(USER_WC[user])
                 else:
@@ -100,24 +71,11 @@ def check_user(func):
                 nt = time()
                 try:
                     ot = USER_JSON[user]
-                    if nt-ot<1.2:
-                        await asyncio.sleep(2)
-                        try:
-                            USER_WC[user] += 1
-                        except KeyError:
-                            USER_WC[user] = 1
-                        if USER_WC[user] == 3:
-                            await c_q.answer(
-                                "Stop spamming bot!!!\nElse you will be blacklisted",
-                                show_alert=True,
-                            )
-                        if USER_WC[user] == 5:
-                            await IGNORE.insert_one({'_id': user})
-                            await c_q.answer('You have been exempted from using this bot now due to spamming 5 times consecutively!!!\nTo remove restriction plead to @hanabi_support', show_alert=True)
-                            await clog('ANIBOT', f'UserID: {user}', 'SPAM')
-                            return
-                        else:
-                            USER_WC[user] = 0
+                    if nt-ot<1.4:
+                        await c_q.answer(
+                            "Stop spamming bot!!!\nElse you will be blacklisted",
+                        )
+                        await clog('ANIBOT', f'UserID: {user}', 'SPAM')
                 except KeyError:
                     pass
                 USER_JSON[user] = nt
@@ -363,3 +321,21 @@ def day_(x: int):
     if x == 4: return "Friday"
     if x == 5: return "Saturday"
     if x == 6: return "Sunday"
+
+
+def season_(future: bool = False):
+    k = datetime.now()
+    m = k.month
+    if future:
+        m = m+3
+    y = k.year
+    if m > 12:
+        y = y+1
+    if m in [1, 2, 3] or m > 12:
+        return 'WINTER', y
+    if m in [4, 5, 6]:
+        return 'SPRING', y
+    if m in [7, 8, 9]:
+        return 'SUMMER', y
+    if m in [10, 11, 12]:
+        return 'FALL', y
