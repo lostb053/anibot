@@ -1106,7 +1106,7 @@ async def toggle_favourites(id_: int, media: str, user: int):
       else CHAR_MUTATION if media=="CHARACTER"
       else MANGA_MUTATION
     )
-    k = await return_json_senpai(query=query, vars=vars_, auth=True, user=int(user))
+    k = await return_json_senpai(query=query, vars_=vars_, auth=True, user=int(user))
     try:
         kek = k['data']['ToggleFavourite']
         return "ok"
@@ -1116,7 +1116,7 @@ async def toggle_favourites(id_: int, media: str, user: int):
 
 async def get_user(vars_, req, user):
     query = USER_QRY if "user" in req else VIEWER_QRY
-    k = await return_json_senpai(query=query, vars=vars_, auth=False if "user" in req else True, user=int(user))
+    k = await return_json_senpai(query=query, vars_=vars_, auth=False if "user" in req else True, user=int(user))
     error = k.get("errors")
     if error:
         error_sts = error[0].get("message")
@@ -1150,8 +1150,8 @@ Average Score: `{manga['meanScore']}`
     return f'https://img.anili.st/user/{data["id"]}?a={time.time()}', stats, InlineKeyboardMarkup(btn)
 
 
-async def update_anilist(id, req, user, eid: int = None, status: str = None):
-    vars_ = {"id": int(id), "status": status}
+async def update_anilist(id_, req, user, eid: int = None, status: str = None):
+    vars_ = {"id": int(id_), "status": status}
     if req=="lsus":
         vars_ = {"id": int(eid), "status": status}
     if req=="dlt":
@@ -1169,7 +1169,7 @@ async def update_anilist(id, req, user, eid: int = None, status: str = None):
 
 async def check_if_adult(id_):
     vars_ = {"id": int(id_)}
-    k = await return_json_senpai(query=ISADULT, vars=vars_, auth=False)
+    k = await return_json_senpai(query=ISADULT, vars_=vars_, auth=False)
     if str(k['data']['Media']['isAdult'])=="True":
         return "True"
     else:
@@ -1250,14 +1250,14 @@ def parse_filler(filler_id):
         ac_ep = None
         for tol in ttl_ep:
             total_ep.append(tol.text)
-        dict = {
+        dict_ = {
             "filler_id": filler_id,
             "total_ep": ", ".join(total_ep),
             "mixed_ep": mix_ep,
             "filler_ep": filler_ep,
             "ac_ep": ac_ep
         }
-        return dict
+        return dict_
     if len(all_ep) == 2:
         ttl_ep = all_ep[0].findAll("a")
         fl_ep = all_ep[1].findAll("a")
@@ -1269,14 +1269,14 @@ def parse_filler(filler_id):
             total_ep.append(tol.text)
         for fol in fl_ep:
             filler_ep.append(fol.text)
-        dict = {
+        dict_ = {
             "filler_id": filler_id,
             "total_ep": ", ".join(total_ep),
             "mixed_ep": mix_ep,
             "filler_ep": ", ".join(filler_ep),
             "ac_ep": ac_ep
         }
-        return dict
+        return dict_
     if len(all_ep) == 3:
         ttl_ep = all_ep[0].findAll("a")
         mxl_ep = all_ep[1].findAll("a")
@@ -1291,14 +1291,14 @@ def parse_filler(filler_id):
             filler_ep.append(fol.text)
         for mol in mxl_ep:
             mix_ep.append(mol.text)
-        dict = {
+        dict_ = {
             "filler_id": filler_id,
             "total_ep": ", ".join(total_ep),
             "mixed_ep": ", ".join(mix_ep),
             "filler_ep": ", ".join(filler_ep),
             "ac_ep": ac_ep
         }
-        return dict
+        return dict_
     if len(all_ep) == 4:
         ttl_ep = all_ep[0].findAll("a")
         mxl_ep = all_ep[1].findAll("a")
@@ -1316,14 +1316,14 @@ def parse_filler(filler_id):
             mix_ep.append(mol.text)
         for aol in al_ep:
             ac_ep.append(aol.text)
-        dict = {
+        dict_ = {
             "filler_id": filler_id,
             "total_ep": ", ".join(total_ep),
             "mixed_ep": ", ".join(mix_ep),
             "filler_ep": ", ".join(filler_ep),
             "ac_ep": ", ".join(ac_ep),
         }
-        return dict
+        return dict_
 
 
 #####         END        #####

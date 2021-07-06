@@ -468,7 +468,7 @@ async def feed_(client: Client, message: Message):
 
 @Client.on_message(filters.command(['eval', f'eval{BOT_NAME}'], prefixes=trg) & filters.user(OWNER))
 @control_user
-async def eval(client: Client, message: Message):
+async def eval_(client: Client, message: Message):
     status_message = await message.reply_text("Processing ...")
     cmd = message.text.split(" ", maxsplit=1)[1]
     reply_to_ = message

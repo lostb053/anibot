@@ -184,10 +184,10 @@ async def take_screen_shot(
 ##################################################################
 
 
-async def return_json_senpai(query: str, vars: dict, auth: bool = False, user: int = None):
+async def return_json_senpai(query: str, vars_: dict, auth: bool = False, user: int = None):
     if auth  is False:
         url = "https://graphql.anilist.co"
-        response = requests.post(url, json={"query": query, "variables": vars}).json()
+        response = requests.post(url, json={"query": query, "variables": vars_}).json()
     else:
         headers = {
         'Authorization': 'Bearer ' + str((await AUTH_USERS.find_one({"id": int(user)}))['token']),
@@ -195,7 +195,7 @@ async def return_json_senpai(query: str, vars: dict, auth: bool = False, user: i
         'Accept': 'application/json',
         }
         url = "https://graphql.anilist.co"
-        response = requests.post(url, json={"query": query, "variables": vars}, headers=headers).json()
+        response = requests.post(url, json={"query": query, "variables": vars_}, headers=headers).json()
     return response
 
 
@@ -270,7 +270,7 @@ def get_btns(media, user: int, result: list, lsqry: str = None, lspage: int = No
         buttons.append([InlineKeyboardButton("More Info", url=result[1][2])])
     if media == "AIRING" and sfw == "False":
         buttons.append([InlineKeyboardButton("More Info", url=result[1])])
-    if auth==True and media!="SCHEDULED" and sfw == "False":
+    if auth is True and media!="SCHEDULED" and sfw == "False":
         auth_btns = get_auth_btns(media, user, result[2], lspage=lspage, lsqry=lsqry)
         buttons.append(auth_btns)
     if len(result)>3:
@@ -303,9 +303,9 @@ def get_auth_btns(media, user, data, lsqry: str = None, lspage: int = None):
     qry = f"_{lsqry}" if lsqry  is not None else ""
     pg = f"_{lspage}" if lspage  is not None else ""
     if media=="CHARACTER":
-        btn.append(InlineKeyboardButton(text="Add to Favs" if data[1]!=True else "Remove from Favs", callback_data=f"fav_{media}_{data[0]}{qry}{pg}_{user}"))
+        btn.append(InlineKeyboardButton(text="Add to Favs" if data[1] is not True else "Remove from Favs", callback_data=f"fav_{media}_{data[0]}{qry}{pg}_{user}"))
     else:
-        btn.append(InlineKeyboardButton(text="Add to Favs" if data[3]!=True else "Remove from Favs", callback_data=f"fav_{media}_{data[0]}{qry}{pg}_{user}"))
+        btn.append(InlineKeyboardButton(text="Add to Favs" if data[3] is not True else "Remove from Favs", callback_data=f"fav_{media}_{data[0]}{qry}{pg}_{user}"))
         btn.append(InlineKeyboardButton(
             text="Add to List" if data[1] is False else "Update in List",
             callback_data=f"lsadd_{media}_{data[0]}{qry}{pg}_{user}" if data[1] is False else f"lsupdt_{media}_{data[0]}_{data[2]}{qry}{pg}_{user}"

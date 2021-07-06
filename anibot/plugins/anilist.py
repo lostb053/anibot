@@ -738,7 +738,7 @@ async def update_anilist_btn(client, cq: CallbackQuery):
     eid = None
     if query[0]!="lsas":
         eid = int(query[4])
-    rslt = await update_anilist(id=idm, req=query[0], status=query[1], user=user, eid=eid)
+    rslt = await update_anilist(id_=idm, req=query[0], status=query[1], user=user, eid=eid)
     if rslt=="ok":
         await cq.answer("Updated")
     else:
