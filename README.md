@@ -8,9 +8,12 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * Favourites
 * Anilist Activity
 * Update Anilist entry using bot
+* Popular, trending and upcoming animes for a season
+* Random anime quotes
 * Anime fillers from [animefillerslist](https://www.animefillerlist.com)
 * Anime Airing notifications from [LiveChart](https://livechart.me)
 * Anime release notifications for [Crunchyroll](https://crunchyroll.com)
+* Anime release notifications for [Subsplease](https://subsplease.org)
 * Anime Reverse Search Powered by [tracemoepy](https://github.com/dragsama/tracemoepy)
 * Watch Order from [Chiaki](https://chiaki.site/) using [web api](https://chiaki.vercel.app)
 <h3>Also can add to grps and enable sfw lock to prevent members from looking up hentai and 18+ rated stuff<br>Also includes command disabling</h3>
@@ -18,7 +21,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 <img src='https://img.shields.io/github/repo-size/lostb053/anibot?style=flat-square'>  <img src='https://img.shields.io/github/license/lostb053/anibot?style=flat-square'>  <img src='https://img.shields.io/github/languages/top/lostb053/anibot?style=flat-square'>  <img src='https://img.shields.io/codefactor/grade/github/lostb053/anibot?style=flat-square'>
 
 ## Requirements
-* Python 3.9.5
+* Python 3.9.6
 * Telegram [API Keys](https://my.telegram.org/apps)
 * Bot Token from [BotFather](https://t.me/botfather)
 * SauceNAO [API Keys](https://saucenao.com/)
@@ -40,7 +43,8 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
  /user - Fetches anilist info as per query
  /schedule - Fetches scheduled animes
  /auth - Fetches info on how to authorize anilist account
- /code - Generates access token from the authorization code from authorization website
+ /browse - get popular, trending or upcoming animes
+ /quote - get random quotes
  /logout - removes authorization
  /settings - To toggle nsfw lock and airing notifications in groups
  /top - to retrieve top animes for a genre or tag
@@ -85,4 +89,4 @@ For improvements PR or contact [@LostB053](https://t.me/lostb053) or [@hanabi_su
 Can ask for support too but don't expect much (since i myself am learning yet)<br>
 <br>
 <h4>Note: I dropped SauceNAO stuff cuz i couldnt represent it in some good looking manner<br>
-I would be grateful if anybody can help me parse results and organize them like <a href='https://t.me/reverseSearchBot'>@reverseSearchBot</a></h4><br>Something nearby but good looking would suffice too
+I would be grateful if anybody can help me parse results and organize them like <a href='https://t.me/reverseSearchBot'>@reverseSearchBot</a></h4>Something nearby but good looking would suffice too
