@@ -15,4 +15,4 @@ async def truth(_, message: Message):
     if find_gc is not None and 'quote' in find_gc['cmd_list'].split():
         return
     q = requests.get("https://animechan.vercel.app/api/random").json()
-    await message.reply_text('`'+q['quote']+'`\n—  '+q['character']+' (From '+q['anime']+')')
+    message.reply_text('`'+q['quote']+'`\n—  '+q['character']+' (From '+q['anime']+')')
