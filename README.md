@@ -27,6 +27,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * SauceNAO [API Keys](https://saucenao.com/)
 * MongoDB [Database URL](https://cloud.mongodb.com/)
 * Anilist [Client Keys](https://anilist.co/settings/developer)
+* For smooth authentication process deploy [this](https://github.com/lostb053/anilist_oauth_webserver) webserver (well a noob code server hope this helps)
 
 
 ## Available Cmds
