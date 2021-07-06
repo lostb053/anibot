@@ -801,7 +801,7 @@ async def additional_info_btn(client: Client, cq: CallbackQuery):
         return
     if len(result) > 1000:
         result = result[:940] + "..."
-        if spoiler==False:
+        if spoiler is False:
             result += "\n\nFor more info click below given button"
             button.append([InlineKeyboardButton(text="More Info", url=f"https://t.me/{bot}/?start=des_{ctgry}_{query}")])
     add_ = ""
@@ -835,10 +835,10 @@ async def featured_in_btn(client, cq: CallbackQuery):
     kek, idm, qry, pg, auth, user = cq.data.split("_")
     result = await get_featured_in_lists(int(idm), "ANI")
     req = "lscm"
-    if result[0]==False:
+    if result[0] is False:
         result = await get_featured_in_lists(int(idm), "MAN")
         req = None
-        if result[0]==False:
+        if result[0] is False:
             await cq.answer("No Data Available!!!")
             return
     [msg, total], pic = result
@@ -861,7 +861,7 @@ async def featured_in_switch_btn(client, cq: CallbackQuery):
     result = await get_featured_in_lists(int(idm), "MAN" if req=="lscm" else "ANI", page=int(reqpg))
     reqb = "lsca" if req=="lscm" else "lscm"
     bt = "Anime"  if req=="lscm" else "Manga"
-    if result[0]==False:
+    if result[0] is False:
         await cq.answer("No Data Available!!!")
         return
     [msg, total], pic = result

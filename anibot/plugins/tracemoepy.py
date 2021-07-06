@@ -72,7 +72,7 @@ async def trace_bek(client: Client, message: Message):
         dls_js = rand_key()
         TRACE_MOE[dls_js] = dls_loc
         button.append([InlineKeyboardButton("Next", callback_data=f"tracech_1_{dls_js}_{message.from_user.id}")])
-        await (message.reply_video if nsfw==False else message.reply_photo)(msg, caption=caption, reply_markup=InlineKeyboardMarkup(button))
+        await (message.reply_video if nsfw is False else message.reply_photo)(msg, caption=caption, reply_markup=InlineKeyboardMarkup(button))
     else:
         await message.reply_text("Couldn't parse results!!!")
     await x.delete()

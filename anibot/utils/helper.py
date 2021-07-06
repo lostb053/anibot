@@ -185,7 +185,7 @@ async def take_screen_shot(
 
 
 async def return_json_senpai(query: str, vars: dict, auth: bool = False, user: int = None):
-    if auth == False:
+    if auth  is False:
         url = "https://graphql.anilist.co"
         response = requests.post(url, json={"query": query, "variables": vars}).json()
     else:
@@ -307,8 +307,8 @@ def get_auth_btns(media, user, data, lsqry: str = None, lspage: int = None):
     else:
         btn.append(InlineKeyboardButton(text="Add to Favs" if data[3]!=True else "Remove from Favs", callback_data=f"fav_{media}_{data[0]}{qry}{pg}_{user}"))
         btn.append(InlineKeyboardButton(
-            text="Add to List" if data[1]==False else "Update in List",
-            callback_data=f"lsadd_{media}_{data[0]}{qry}{pg}_{user}" if data[1]==False else f"lsupdt_{media}_{data[0]}_{data[2]}{qry}{pg}_{user}"
+            text="Add to List" if data[1] is False else "Update in List",
+            callback_data=f"lsadd_{media}_{data[0]}{qry}{pg}_{user}" if data[1] is False else f"lsupdt_{media}_{data[0]}_{data[2]}{qry}{pg}_{user}"
             ))
     return btn
 

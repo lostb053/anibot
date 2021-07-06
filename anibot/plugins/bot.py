@@ -79,7 +79,7 @@ async def en_dis__able_cmd(client: Client, message: Message):
         enable = False if not 'enable' in cmd[0] else True
         if set(cmd[1].split()).issubset(CMD):
             find_gc = await DC.find_one({'_id': gid})
-            if find_gc==None:
+            if find_gc is None:
                 if enable:
                     x = await message.reply_text('Command already enabled!!!')
                     await asyncio.sleep(5)
@@ -123,7 +123,7 @@ async def en_dis__able_cmd(client: Client, message: Message):
                                 lsncls.append(i)
                         ncls = " ".join(lsncls)
                 await DC.update_one({'_id': gid}, {'$set': {'cmd_list': ncls}})
-                x = await message.reply_text(f"Command {'dis' if enable==False else 'en'}abled!!!")
+                x = await message.reply_text(f"Command {'dis' if enable is False else 'en'}abled!!!")
                 await asyncio.sleep(5)
                 await x.delete()
                 return
@@ -135,7 +135,7 @@ async def en_dis__able_cmd(client: Client, message: Message):
 @control_user
 async def list_disabled(client: Client, message: Message):
     find_gc = await DC.find_one({'_id': message.chat.id})
-    if find_gc==None:
+    if find_gc is None:
         await message.reply_text("No commands disabled in this group!!!")
     else:
         lscmd = find_gc['cmd_list'].replace(" ", "\n")

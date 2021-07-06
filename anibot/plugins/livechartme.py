@@ -23,13 +23,13 @@ async def livechart_parser():
     da = bs(requests.get(url_a).text, features="xml")
     db = bs(requests.get(url_b).text, features="xml")
     dc = bs(requests.get(url_c).text, features='xml')
-    if (await A.find_one())==None:
+    if (await A.find_one()) is None:
         await A.insert_one({'_id': str(da.find('item').find('title'))})
         return
-    if (await B.find_one())==None:
+    if (await B.find_one()) is None:
         await B.insert_one({'_id': str(db.find('item').find('title'))})
         return
-    if (await C.find_one())==None:
+    if (await C.find_one()) is None:
         await C.insert_one({'_id': str(dc.find('item').find('title'))})
         return
     count_a = 0
