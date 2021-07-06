@@ -15,7 +15,7 @@ async def get_schuled(client: Client, message: Message):
     """Get List of Scheduled Anime"""
     gid = message.chat.id
     find_gc = await DC.find_one({'_id': gid})
-    if find_gc!=None and 'schedule' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'schedule' in find_gc['cmd_list'].split():
         return
     x = await client.send_message(gid, "<code>Fetching Scheduled Animes</code>")
     user = message.from_user.id

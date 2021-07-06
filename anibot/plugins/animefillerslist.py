@@ -12,7 +12,7 @@ DC = get_collection('DISABLED_CMDS')
 @control_user
 async def fillers_cmd(client: Client, message: Message):
     find_gc = await DC.find_one({'_id': message.chat.id})
-    if find_gc!=None and 'watch' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'watch' in find_gc['cmd_list'].split():
         return
     qry = message.text.split(" ", 1)
     if len(qry)==1:
@@ -32,7 +32,7 @@ async def fillers_cmd(client: Client, message: Message):
         msg += str(result.get("mixed_ep"))
         msg += "\n\nFillers:\n"
         msg += str(result.get("filler_ep"))
-        if result.get("ac_ep")!=None:
+        if result.get("ac_ep") is not None:
             msg += "\n\nAnime Canon episodes:\n"
             msg += str(result.get("ac_ep"))
         await message.reply_text(msg)
@@ -56,7 +56,7 @@ async def filler_btn(client: Client, cq: CallbackQuery):
     msg += str(result.get("mixed_ep"))
     msg += "\n\n**Fillers:**\n"
     msg += str(result.get("filler_ep"))
-    if result.get("ac_ep")!=None:
+    if result.get("ac_ep") is not None:
         msg += "\n\n**Anime Canon episodes:**\n"
         msg += str(result.get("ac_ep"))
     await cq.edit_message_text(msg)

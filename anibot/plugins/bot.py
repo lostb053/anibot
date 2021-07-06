@@ -296,7 +296,7 @@ async def start_(client: Client, message: Message):
     gid = message.chat.id
     user = message.from_user.id
     find_gc = await DC.find_one({'_id': gid})
-    if find_gc!=None and 'start' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'start' in find_gc['cmd_list'].split():
         return
     bot = await client.get_me()
     if gid==user:
@@ -342,7 +342,7 @@ If you wish to use me in a group start me by /start{BOT_NAME} command after addi
 async def help_(client: Client, message: Message):
     gid = message.chat.id
     find_gc = await DC.find_one({'_id': gid})
-    if find_gc!=None and 'help' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'help' in find_gc['cmd_list'].split():
         return
     id_ = message.from_user.id
     bot_us = (await client.get_me()).username
@@ -448,7 +448,7 @@ Stats:-
 @control_user
 async def pong_(client: Client, message: Message):
     find_gc = await DC.find_one({'_id': message.chat.id})
-    if find_gc!=None and 'ping' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'ping' in find_gc['cmd_list'].split():
         return
     st = datetime.now()
     x = await message.reply_text("Ping...")

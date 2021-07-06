@@ -17,7 +17,7 @@ async def get_watch_order(client: Client, message: Message):
     """Get List of Scheduled Anime"""
     gid = message.chat.id
     find_gc = await DC.find_one({'_id': gid})
-    if find_gc!=None and 'watch' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'watch' in find_gc['cmd_list'].split():
         return
     x = message.text.split(" ", 1)
     if len(x)==1:

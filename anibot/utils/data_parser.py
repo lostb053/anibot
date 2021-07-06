@@ -781,7 +781,7 @@ async def get_anime(vars_, auth: bool = False, user: int = None):
     in_ls_id = ""
     if auth is True:
         in_list = data.get("mediaListEntry")
-        if in_list!=None:
+        if in_list is not None:
             in_ls = True
             in_ls_id = in_list['id']
             in_ls_stts = in_list['status']
@@ -888,7 +888,7 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
     user_data = ""
     if auth is True:
         in_list = data.get("mediaListEntry")
-        if in_list!=None:
+        if in_list is not None:
             in_ls = True
             in_ls_id = in_list['id']
             in_ls_stts = in_list['status']
@@ -1031,7 +1031,7 @@ async def get_manga(qdb, page, auth: bool = False, user: int = None):
     user_data = ""
     if auth is True:
         in_list = data.get("mediaListEntry")
-        if in_list!=None:
+        if in_list is not None:
             in_ls = True
             in_ls_id = in_list['id']
             in_ls_stts = in_list['status']
@@ -1078,7 +1078,7 @@ async def get_airing(vars_, auth: bool = False, user: int = None):
     user_data = ""
     if auth is True:
         in_list = data.get("mediaListEntry")
-        if in_list!=None:
+        if in_list is not None:
             in_ls = True
             in_ls_id = in_list['id']
             in_ls_stts = in_list['status']

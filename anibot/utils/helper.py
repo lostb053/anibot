@@ -245,8 +245,8 @@ async def clog(name: str, text: str, tag: str):
 
 def get_btns(media, user: int, result: list, lsqry: str = None, lspage: int = None, auth: bool = False, sfw: str = "False"):
     buttons = []
-    qry = f"_{lsqry}" if lsqry != None else ""
-    pg = f"_{lspage}" if lspage != None else ""
+    qry = f"_{lsqry}" if lsqry  is not None else ""
+    pg = f"_{lspage}" if lspage  is not None else ""
     if media == "ANIME" and sfw == "False":
         buttons.append([
             InlineKeyboardButton(text="Characters", callback_data=f"char_{result[2][0]}_ANI{qry}{pg}_{str(auth)}_1_{user}"),
@@ -285,7 +285,7 @@ def get_btns(media, user: int, result: list, lsqry: str = None, lspage: int = No
                 ])
             else:
                 buttons.append([InlineKeyboardButton(text="Prequel", callback_data=f"btn_{result[3]}_{str(auth)}_{user}")])
-    if lsqry != None and len(result)!=1 and result[1][1]!=1:
+    if lsqry  is not None and len(result)!=1 and result[1][1]!=1:
         if lspage == 1:
             buttons.append([InlineKeyboardButton(text="Next", callback_data=f"page_{media}{qry}_{int(lspage)+1}_{str(auth)}_{user}")])
         elif lspage == result[1][1]:
@@ -300,8 +300,8 @@ def get_btns(media, user: int, result: list, lsqry: str = None, lspage: int = No
 
 def get_auth_btns(media, user, data, lsqry: str = None, lspage: int = None):
     btn = []
-    qry = f"_{lsqry}" if lsqry != None else ""
-    pg = f"_{lspage}" if lspage != None else ""
+    qry = f"_{lsqry}" if lsqry  is not None else ""
+    pg = f"_{lspage}" if lspage  is not None else ""
     if media=="CHARACTER":
         btn.append(InlineKeyboardButton(text="Add to Favs" if data[1]!=True else "Remove from Favs", callback_data=f"fav_{media}_{data[0]}{qry}{pg}_{user}"))
     else:

@@ -29,7 +29,7 @@ async def trace_bek(client: Client, message: Message):
     """ Reverse Search Anime Clips/Photos """
     gid = message.chat.id
     find_gc = await DC.find_one({'_id': gid})
-    if find_gc!=None and 'reverse' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'reverse' in find_gc['cmd_list'].split():
         return
     x = await message.reply_text("Reverse searching the given media")
     replied = message.reply_to_message

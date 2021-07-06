@@ -52,7 +52,7 @@ async def anime_cmd(client: Client, message: Message):
         await GROUPS.insert_one({"id": gid, "grp": gidtitle})
         await clog("ANIBOT", f"Bot added to a new group\n\n{gidtitle}\nID: `{gid}`", "NEW_GROUP")
     find_gc = await DC.find_one({'_id': gid})
-    if find_gc!=None and 'anime' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'anime' in find_gc['cmd_list'].split():
         return
     if len(text)==1:
         k = await message.reply_text("Please give a query to search about\nexample: /anime Ao Haru Ride")
@@ -92,7 +92,7 @@ async def manga_cmd(client: Client, message: Message):
         await GROUPS.insert_one({"id": gid, "grp": gidtitle})
         await clog("ANIBOT", f"Bot added to a new group\n\n{gidtitle}\nID: `{gid}`", "NEW_GROUP")
     find_gc = await DC.find_one({'_id': gid})
-    if find_gc!=None and 'manga' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'manga' in find_gc['cmd_list'].split():
         return
     if len(text)==1:
         k = await message.reply_text("Please give a query to search about\nexample: /manga The teasing master Takagi san")
@@ -131,7 +131,7 @@ async def character_cmd(client: Client, message: Message):
         await GROUPS.insert_one({"id": gid, "grp": gidtitle})
         await clog("ANIBOT", f"Bot added to a new group\n\n{gidtitle}\nID: `{gid}`", "NEW_GROUP")
     find_gc = await DC.find_one({'_id': gid})
-    if find_gc!=None and 'character' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'character' in find_gc['cmd_list'].split():
         return
     if len(text)==1:
         k = await message.reply_text("Please give a query to search about\nexample: /character Nezuko")
@@ -161,7 +161,7 @@ async def anilist_cmd(client: Client, message: Message):
     gid = message.chat.id
     user = message.from_user.id
     find_gc = await DC.find_one({'_id': gid})
-    if find_gc!=None and 'anilist' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'anilist' in find_gc['cmd_list'].split():
         return
     if len(text)==1:
         k = await message.reply_text("Please give a query to search about\nexample: /anilist rezero")
@@ -195,7 +195,7 @@ async def flex_cmd(client: Client, message: Message):
     gid = message.chat.id
     find_gc = await DC.find_one({'_id': gid})
     if "user" in query[0]:
-        if find_gc!=None and 'user' in find_gc['cmd_list'].split():
+        if find_gc is not None and 'user' in find_gc['cmd_list'].split():
             return
         if not len(query)==2:
             k = await message.reply_text("Please give an anilist username to search about\nexample: /user Lostb053")
@@ -203,7 +203,7 @@ async def flex_cmd(client: Client, message: Message):
             return await k.delete()
         else:
             qry = {"search": query[1]}
-    if find_gc!=None and 'flex' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'flex' in find_gc['cmd_list'].split():
         return
     user = message.from_user.id
     if not "user" in query[0] and not (await AUTH_USERS.find_one({"id": user})):
@@ -227,7 +227,7 @@ async def top_tags_cmd(client: Client, message: Message):
     query = message.text.split(" ", 1)
     gid = message.chat.id
     find_gc = await DC.find_one({'_id': gid})
-    if find_gc!=None and 'top' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'top' in find_gc['cmd_list'].split():
         return
     get_tag = "None"
     if len(query)==2:
@@ -251,7 +251,7 @@ async def airing_cmd(client: Client, message: Message):
     text = message.text.split(" ", 1)
     gid = message.chat.id
     find_gc = await DC.find_one({'_id': gid})
-    if find_gc!=None and 'airing' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'airing' in find_gc['cmd_list'].split():
         return
     if len(text)==1:
         k = await message.reply_text("Please give a query to search about\nexample: /airing Fumetsu no Anata e")
@@ -363,7 +363,7 @@ async def activity_cmd(client: Client, message: Message):
     user = message.from_user.id
     gid = message.chat.id
     find_gc = await DC.find_one({'_id': gid})
-    if find_gc!=None and ('me' or 'activity') in find_gc['cmd_list'].split():
+    if find_gc is not None and ('me' or 'activity') in find_gc['cmd_list'].split():
         return
     if not (await AUTH_USERS.find_one({"id": user})):
         bot_us = (await client.get_me()).username
@@ -385,7 +385,7 @@ async def favourites_cmd(client: Client, message: Message):
     user = message.from_user.id
     gid = message.chat.id
     find_gc = await DC.find_one({'_id': gid})
-    if find_gc!=None and 'favourites' in find_gc['cmd_list'].split():
+    if find_gc is not None and 'favourites' in find_gc['cmd_list'].split():
         return
     if not (await AUTH_USERS.find_one({"id": user})):
         bot_us = (await client.get_me()).username
@@ -442,9 +442,9 @@ async def logout_cmd(client: Client, message: Message):
 async def list_tags_genres_cmd(client, message: Message):
     gid = message.chat.id
     find_gc = await DC.find_one({'_id': gid})
-    if find_gc!=None and "gettags" in message.text.split()[0] and 'gettags' in find_gc['cmd_list'].split():
+    if find_gc is not None and "gettags" in message.text.split()[0] and 'gettags' in find_gc['cmd_list'].split():
         return
-    if find_gc!=None and "getgenres" in message.text.split()[0] and 'getgenres' in find_gc['cmd_list'].split():
+    if find_gc is not None and "getgenres" in message.text.split()[0] and 'getgenres' in find_gc['cmd_list'].split():
         return
     if await (SFW_GRPS.find_one({"id": gid})) and 'nsfw' in message.text:
         return await message.reply_text('No nsfw allowed here!!!')
@@ -848,7 +848,7 @@ async def featured_in_btn(client, cq: CallbackQuery):
         totalpg + 1
     if total>15:
         button.append([InlineKeyboardButton(text="Next", callback_data=f"lsca_{idm}_1_{qry}_{pg}_{auth}_{user}")])
-    if req!=None:
+    if req is not None:
         button.append([InlineKeyboardButton(text="Manga", callback_data=f"lscm_{idm}_0_{qry}_{pg}_{auth}_{user}")])
     button.append([InlineKeyboardButton(text="Back", callback_data=f"page_CHARACTER_{qry}_{pg}_{auth}_{user}")])
     await cq.edit_message_media(InputMediaPhoto(pic, caption=msg), reply_markup=InlineKeyboardMarkup(button))

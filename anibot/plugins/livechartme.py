@@ -123,7 +123,7 @@ async def livechart_parser():
 
     print('Notifying Livachart.me airings!!!')
     for i in msgslc:
-        if await AR_GRPS.find_one() != None:
+        if await AR_GRPS.find_one()  is not None:
             async for id_ in AR_GRPS.find():
                 btn = InlineKeyboardMarkup([[InlineKeyboardButton("More Info", url=i[1])]])
                 await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
@@ -131,7 +131,7 @@ async def livechart_parser():
     await asyncio.sleep(10)
     print('Notifying Crunchyroll releases!!!')
     for i in msgscr:
-        if await CR_GRPS.find_one() != None:
+        if await CR_GRPS.find_one()  is not None:
             async for id_ in CR_GRPS.find():
                 btn = InlineKeyboardMarkup([[InlineKeyboardButton("More Info", url=i[1])]])
                 await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
@@ -139,7 +139,7 @@ async def livechart_parser():
     await asyncio.sleep(10)
     print('Notifying Subsplease releases!!!')
     for i in msgssp:
-        if await SP_GRPS.find_one() != None:
+        if await SP_GRPS.find_one()  is not None:
             async for id_ in SP_GRPS.find():
                 btn = InlineKeyboardMarkup([[InlineKeyboardButton("Download", url=i[1])]])
                 await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
