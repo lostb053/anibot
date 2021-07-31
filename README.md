@@ -12,6 +12,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * Random anime quotes
 * Anime fillers from [animefillerslist](https://www.animefillerlist.com)
 * Anime Airing notifications from [LiveChart](https://livechart.me)
+* Anime Headlines from [LiveChart](https://livechart.me)
 * Anime release notifications for [Crunchyroll](https://crunchyroll.com)
 * Anime release notifications for [Subsplease](https://subsplease.org)
 * Anime Reverse Search Powered by [tracemoepy](https://github.com/dragsama/tracemoepy)
