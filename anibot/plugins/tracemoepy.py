@@ -10,9 +10,9 @@ import asyncio
 import tracemoepy
 from tracemoepy.errors import ServerError
 from aiohttp import ClientSession
-from pyrogram import Client, filters
+from pyrogram import filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, InputMediaPhoto, InputMediaVideo, Message
-from .. import BOT_NAME, TRIGGERS as trg
+from .. import BOT_NAME, TRIGGERS as trg, anibot
 from ..utils.helper import check_user, control_user, media_to_image, rand_key
 from ..utils.data_parser import check_if_adult
 from ..utils.db import get_collection
@@ -23,11 +23,11 @@ DC = get_collection('DISABLED_CMDS')
 
 TRACE_MOE = {}
 
-@Client.on_message(filters.command(["reverse", f"reverse{BOT_NAME}"], prefixes=trg))
+@anibot.on_message(filters.command(["reverse", f"reverse{BOT_NAME}"], prefixes=trg))
 @control_user
-async def trace_bek(client: Client, message: Message):
+async def trace_bek(client: anibot, message: Message, mdata: dict):
     """ Reverse Search Anime Clips/Photos """
-    gid = message.chat.id
+    gid = mdata['chat']['id']
     find_gc = await DC.find_one({'_id': gid})
     if find_gc is not None and 'reverse' in find_gc['cmd_list'].split():
         return
@@ -71,17 +71,17 @@ async def trace_bek(client: Client, message: Message):
             button.append([InlineKeyboardButton("More Info", url=f"https://anilist.co/anime/{result['anilist']['id']}")])
         dls_js = rand_key()
         TRACE_MOE[dls_js] = dls_loc
-        button.append([InlineKeyboardButton("Next", callback_data=f"tracech_1_{dls_js}_{message.from_user.id}")])
+        button.append([InlineKeyboardButton("Next", callback_data=f"tracech_1_{dls_js}_{mdata['from_user']['id']}")])
         await (message.reply_video if nsfw is False else message.reply_photo)(msg, caption=caption, reply_markup=InlineKeyboardMarkup(button))
     else:
         await message.reply_text("Couldn't parse results!!!")
     await x.delete()
 
 
-@Client.on_callback_query(filters.regex(pattern=r"tracech_(.*)"))
+@anibot.on_callback_query(filters.regex(pattern=r"tracech_(.*)"))
 @check_user
-async def tracemoe_btn(client: Client, cq: CallbackQuery):
-    kek, page, dls_loc, user = cq.data.split("_")
+async def tracemoe_btn(client: anibot, cq: CallbackQuery, cdata: dict):
+    kek, page, dls_loc, user = cdata['data'].split("_")
     try:
         TRACE_MOE[dls_loc]
     except KeyError:

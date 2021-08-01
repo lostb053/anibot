@@ -11,7 +11,7 @@ from bson.objectid import ObjectId
 from bs4 import BeautifulSoup as bs
 from datetime import datetime
 from natsort import natsorted
-from pyrogram import Client, filters
+from pyrogram import filters
 from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from pyrogram.errors import ChannelInvalid as ci, ChannelPrivate as cp, PeerIdInvalid as pi, FloodWait as fw
 from .. import BOT_NAME, TRIGGERS as trg, OWNER, HELP_DICT, anibot, DOWN_PATH, LOG_CHANNEL_ID
@@ -30,7 +30,7 @@ from ..utils.data_parser import (
     FAV_CHAR_QUERY, FAV_MANGA_QUERY, GET_GENRES, ISADULT, LS_INFO_QUERY, MANGA_MUTATION, MANGA_QUERY, PAGE_QUERY, TOP_QUERY,
     REL_INFO_QUERY, TOPT_QUERY, USER_QRY, VIEWER_QRY
 )
-from .anilist import auth_link_cmd, code_cmd
+from .anilist import auth_link_cmd, code_cmd, logout_cmd
 
 USERS = get_collection("USERS")
 GROUPS = get_collection("GROUPS")
@@ -38,6 +38,7 @@ SFW_GROUPS = get_collection("SFW_GROUPS")
 DC = get_collection('DISABLED_CMDS')
 AG = get_collection('AIRING_GROUPS')
 CR_GRPS = get_collection('CRUNCHY_GROUPS')
+HD_GRPS = get_collection('HEADLINES_GROUPS')
 SP_GRPS = get_collection('SUBSPLEASE_GROUPS')
 CMD = [
     'anime',
@@ -64,12 +65,12 @@ CMD = [
 ]
 
 
-@Client.on_message(~filters.private & filters.command(['disable', f'disable{BOT_NAME}', 'enable', f'enable{BOT_NAME}']))
+@anibot.on_message(~filters.private & filters.command(['disable', f'disable{BOT_NAME}', 'enable', f'enable{BOT_NAME}']))
 @control_user
-async def en_dis__able_cmd(client: Client, message: Message):
-    cmd = message.text.split(" ", 1)
-    gid = message.chat.id
-    user = message.from_user.id
+async def en_dis__able_cmd(client: anibot, message: Message, mdata: dict):
+    cmd = mdata['text'].split(" ", 1)
+    gid = mdata['chat']['id']
+    user = mdata['from_user']['id']
     if user in OWNER or (await anibot.get_chat_member(gid, user)).status!='member':
         if len(cmd)==1:
             x = await message.reply_text('No command specified to be disabled!!!')
@@ -131,20 +132,20 @@ async def en_dis__able_cmd(client: Client, message: Message):
             await message.reply_text("Hee, is that a command?!")
 
 
-@Client.on_message(~filters.private & filters.command(['disabled', f'disabled{BOT_NAME}']))
+@anibot.on_message(~filters.private & filters.command(['disabled', f'disabled{BOT_NAME}']))
 @control_user
-async def list_disabled(client: Client, message: Message):
-    find_gc = await DC.find_one({'_id': message.chat.id})
+async def list_disabled(client: anibot, message: Message, mdata: dict):
+    find_gc = await DC.find_one({'_id': mdata['chat']['id']})
     if find_gc is None:
         await message.reply_text("No commands disabled in this group!!!")
     else:
         lscmd = find_gc['cmd_list'].replace(" ", "\n")
-        await message.reply_text(f"List of commands disabled in **{message.chat.title}**\n\n{lscmd}")
+        await message.reply_text(f"List of commands disabled in **{mdata['chat']['title']}**\n\n{lscmd}")
 
 
-@Client.on_message(filters.user(OWNER) & filters.command(['dbcleanup', f'dbcleanup{BOT_NAME}'], prefixes=trg))
+@anibot.on_message(filters.user(OWNER) & filters.command(['dbcleanup', f'dbcleanup{BOT_NAME}'], prefixes=trg))
 @control_user
-async def db_cleanup(client: Client, message: Message):
+async def db_cleanup(client: anibot, message: Message, mdata: dict):
     count = 0
     entries = ""
     st = datetime.now()
@@ -218,6 +219,11 @@ async def db_cleanup(client: Client, message: Message):
     await asyncio.sleep(5)
     await x.edit_text("Checking 5th collection!!!")
     async for i in AUTH_USERS.find():
+        if i['id']=='pending':
+            count += 1
+            entries += str(await AUTH_USERS.find_one({'id': i['_id']}))+'\n\n'
+            await AUTH_USERS.find_one_and_delete({'id': i['_id']})
+    async for i in AUTH_USERS.find():
         await asyncio.sleep(2)
         try:
             await client.get_users(i['id'])
@@ -260,10 +266,26 @@ async def db_cleanup(client: Client, message: Message):
         except fw:
             await asyncio.sleep(fw.x + 5)
     await asyncio.sleep(5)
+    await x.edit_text("Checking 8th collection!!!")
+    async for i in HD_GRPS.find():
+        await asyncio.sleep(2)
+        try:
+            await client.get_chat(i['_id'])
+        except cp:
+            count += 1
+            entries += str(await HD_GRPS.find_one({'_id': i['_id']}))+'\n\n'
+            await HD_GRPS.find_one_and_delete({'_id': i['_id']})
+        except ci:
+            count += 1
+            entries += str(await HD_GRPS.find_one({'_id': i['_id']}))+'\n\n'
+            await HD_GRPS.find_one_and_delete({'_id': i['_id']})
+        except fw:
+            await asyncio.sleep(fw.x + 5)
+    await asyncio.sleep(5)
 
     nosgrps = await GROUPS.estimated_document_count()
     nossgrps = await SFW_GROUPS.estimated_document_count()
-    nosauus = await AUTH_USERS.estimated_document_count()    
+    nosauus = await AUTH_USERS.estimated_document_count()
     if count == 0:
         msg = f"""Database seems to be accurate, no changes to be made!!!
 
@@ -290,27 +312,36 @@ async def db_cleanup(client: Client, message: Message):
     await x.edit_text(msg)
 
 
-@Client.on_message(filters.command(['start', f'start{BOT_NAME}'], prefixes=trg))
+@anibot.on_message(filters.command(['start', f'start{BOT_NAME}'], prefixes=trg))
 @control_user
-async def start_(client: Client, message: Message):
-    gid = message.chat.id
-    user = message.from_user.id
+async def start_(client: anibot, message: Message, mdata: dict):
+    gid = mdata['chat']['id']
+    try:
+        user = mdata['from_user']['id']
+    except KeyError:
+        user = 00000000
     find_gc = await DC.find_one({'_id': gid})
     if find_gc is not None and 'start' in find_gc['cmd_list'].split():
         return
     bot = await client.get_me()
     if gid==user:
-        usertitle = message.from_user.username or message.from_user.first_name
         if not (user in OWNER) and not (await USERS.find_one({"id": user})):
+            try:
+                usertitle = mdata['from_user']['username']
+            except KeyError:
+                usertitle = mdata['from_user']['first_name']
             await USERS.insert_one({"id": user, "user": usertitle})
             await clog("ANIBOT", f"New User started bot\n\n[{usertitle}](tg://user?id={user})\nID: `{user}`", "NEW_USER")
-        if len(message.text.split())!=1:
-            deep_cmd = message.text.split()[1]
+        if len(mdata['text'].split())!=1:
+            deep_cmd = mdata['text'].split()[1]
             if deep_cmd=="help":
                 await help_(client, message)
                 return
             if deep_cmd=="auth":
                 await auth_link_cmd(client, message)
+                return
+            if deep_cmd=="logout":
+                await logout_cmd(client, message)
                 return
             if deep_cmd.split("_")[0]=="des":
                 pic, result = await get_additional_info(deep_cmd.split("_")[2], "desc", deep_cmd.split("_")[1])
@@ -318,6 +349,8 @@ async def start_(client: Client, message: Message):
                 await client.send_message(user, result.replace("~!", "").replace("!~", ""))
                 return
             if deep_cmd.split("_", 1)[0]=="code":
+                if not os.environ.get('ANILIST_REDIRECT_URL'):
+                    return
                 qry = deep_cmd.split("_", 1)[1]
                 k = await AUTH_USERS.find_one({'_id': ObjectId(qry)})
                 await code_cmd(k['code'], message)
@@ -330,22 +363,33 @@ For more info send /help in here.
 If you wish to use me in a group start me by /start{BOT_NAME} command after adding me in the group."""
         )
     else:
-        gidtitle = message.chat.username or message.chat.title
         if not await (GROUPS.find_one({"id": gid})):
+            try:
+                gidtitle = mdata['chat']['username']
+            except KeyError:
+                gidtitle = mdata['chat']['title']
             await GROUPS.insert_one({"id": gid, "grp": gidtitle})
             await clog("ANIBOT", f"Bot added to a new group\n\n{gidtitle}\nID: `{gid}`", "NEW_GROUP")
         await client.send_message(gid, text="Bot seems online!!!")
 
 
-@Client.on_message(filters.command(['help', f'help{BOT_NAME}'], prefixes=trg))
+@anibot.on_message(filters.command(['help', f'help{BOT_NAME}'], prefixes=trg))
 @control_user
-async def help_(client: Client, message: Message):
-    gid = message.chat.id
+async def help_(client: anibot, message: Message, mdata: dict):
+    gid = mdata['chat']['id']
     find_gc = await DC.find_one({'_id': gid})
     if find_gc is not None and 'help' in find_gc['cmd_list'].split():
         return
-    id_ = message.from_user.id
     bot_us = (await client.get_me()).username
+    try:
+        id_ = mdata['from_user']['id']
+    except KeyError:
+        await client.send_message(
+            gid,
+            text="Click below button for bot help",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Help", url=f"https://t.me/{bot_us}/?start=help")]])
+        )
+        return
     buttons = help_btns(id_)
     text='''This is a small guide on how to use me\n\n**Basic Commands:**\nUse /ping or !ping cmd to check if bot is online
 Use /start or !start cmd to start bot in group or pm
@@ -375,21 +419,21 @@ Apart from above shown cmds"""
             )
 
 
-@Client.on_callback_query(filters.regex(pattern=r"help_(.*)"))
+@anibot.on_callback_query(filters.regex(pattern=r"help_(.*)"))
 @check_user
-async def help_dicc_parser(client, cq: CallbackQuery):
+async def help_dicc_parser(client: anibot, cq: CallbackQuery, cdata: dict):
     await cq.answer()
-    kek, qry, user = cq.data.split("_")
+    kek, qry, user = cdata['data'].split("_")
     text = HELP_DICT[qry]
     btn = InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data=f"hlplist_{user}")]])
     await cq.edit_message_text(text=text, reply_markup=btn)
 
 
-@Client.on_callback_query(filters.regex(pattern=r"hlplist_(.*)"))
+@anibot.on_callback_query(filters.regex(pattern=r"hlplist_(.*)"))
 @check_user
-async def help_list_parser(client, cq: CallbackQuery):
+async def help_list_parser(client: anibot, cq: CallbackQuery, cdata: dict):
     await cq.answer()
-    user = cq.data.split("_")[1]
+    user = cdata['data'].split("_")[1]
     buttons = help_btns(user)
     text='''This is a small guide on how to use me\n\n**Basic Commands:**\nUse /ping or !ping cmd to check if bot is online
 Use /start or !start cmd to start bot in group or pm
@@ -412,9 +456,9 @@ def help_btns(user):
     return InlineKeyboardMarkup(buttons)
 
 
-@Client.on_message(filters.user(OWNER) & filters.command(['stats', f'stats{BOT_NAME}'], prefixes=trg))
+@anibot.on_message(filters.user(OWNER) & filters.command(['stats', f'stats{BOT_NAME}'], prefixes=trg))
 @control_user
-async def stats_(client: Client, message: Message):
+async def stats_(client: anibot, message: Message, mdata: dict):
     st = datetime.now()
     x = await message.reply_text("Collecting Stats!!!")
     et = datetime.now()
@@ -423,6 +467,7 @@ async def stats_(client: Client, message: Message):
     nosauus = await AUTH_USERS.estimated_document_count()
     nosgrps = await GROUPS.estimated_document_count()
     nossgrps = await SFW_GROUPS.estimated_document_count()
+    noshdgrps = await HD_GRPS.estimated_document_count()
     s = await SP_GRPS.estimated_document_count()
     a = await AG.estimated_document_count()
     c = await CR_GRPS.estimated_document_count()
@@ -436,6 +481,7 @@ Stats:-
 **Airing Groups:** {a}
 **Crunchyroll Groups:** {c}
 **Subsplease Groups:** {s}
+**Headline Groups:** {noshdgrps}
 **SFW Groups:** {nossgrps}
 **Stargazers:** {kk.get("stargazers_count")}
 **Forks:** {kk.get("forks")}
@@ -444,10 +490,10 @@ Stats:-
     )
 
 
-@Client.on_message(filters.command(['ping', f'ping{BOT_NAME}'], prefixes=trg))
+@anibot.on_message(filters.command(['ping', f'ping{BOT_NAME}'], prefixes=trg))
 @control_user
-async def pong_(client: Client, message: Message):
-    find_gc = await DC.find_one({'_id': message.chat.id})
+async def pong_(client: anibot, message: Message, mdata: dict):
+    find_gc = await DC.find_one({'_id': mdata['chat']['id']})
     if find_gc is not None and 'ping' in find_gc['cmd_list'].split():
         return
     st = datetime.now()
@@ -457,18 +503,18 @@ async def pong_(client: Client, message: Message):
     await x.edit_text(f"__Pong!!!__\n`{pt} ms`")
 
 
-@Client.on_message(filters.private & filters.command(['feedback', f'feedback{BOT_NAME}'], prefixes=trg))
+@anibot.on_message(filters.private & filters.command(['feedback', f'feedback{BOT_NAME}'], prefixes=trg))
 @control_user
-async def feed_(client: Client, message: Message):
-    owner = await client.get_users(OWNER[0])
-    await client.send_message(message.chat.id, f"For issues or queries please contact @{owner.username} or join @hanabi_support")
+async def feed_(client: anibot, message: Message, mdata: dict):
+    owner = (await client.get_users(OWNER[0])).username
+    await client.send_message(mdata['chat']['id'], f"For issues or queries please contact @{owner} or join @hanabi_support")
 
 ###### credits to @NotThatMF on tg since he gave me the code for it ######
 
 
-@Client.on_message(filters.command(['eval', f'eval{BOT_NAME}'], prefixes=trg) & filters.user(OWNER))
+@anibot.on_message(filters.command(['eval', f'eval{BOT_NAME}'], prefixes=trg) & filters.user(OWNER))
 @control_user
-async def eval_(client: Client, message: Message):
+async def eval_(client: anibot, message: Message, mdata: dict):
     status_message = await message.reply_text("Processing ...")
     cmd = message.text.split(" ", maxsplit=1)[1]
     reply_to_ = message
@@ -519,9 +565,9 @@ async def aexec(code, client, message):
     return await locals()["__aexec"](client, message)
 
 
-@Client.on_message(filters.user(OWNER) & filters.command(["term", f"term{BOT_NAME}"], prefixes=trg))
+@anibot.on_message(filters.user(OWNER) & filters.command(["term", f"term{BOT_NAME}"], prefixes=trg))
 @control_user
-async def terminal(client: Client, message: Message):
+async def terminal(client: anibot, message: Message, mdata: dict):
     if len(message.text.split()) == 1:
         await message.reply_text("Usage: `/term echo owo`")
         return

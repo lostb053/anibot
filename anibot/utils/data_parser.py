@@ -15,9 +15,10 @@ ANIME_TEMPLATE = """{name}
 
 **ID | MAL ID:** `{idm}` | `{idmal}`
 ➤ **SOURCE:** `{source}`
-➤ **TYPE:** `{formats}`{dura}{gnrs_}
-{status_air}{user_data}
+➤ **TYPE:** `{formats}`{avscd}{dura}{user_data}
+{status_air}{gnrs_}{tags_}
 ➤ **ADULT RATED:** `{adult}`
+
 🎬 {trailer_link}
 📖 <a href="{surl}">Synopsis</a>
 📖 <a href="{url}">Official Site</a>
@@ -46,6 +47,10 @@ query ($id: Int, $idMal:Int, $search: String) {
       site
     }
     genres
+    tags {
+      name
+    }
+    averageScore
     relations {
       edges {
         node {
@@ -369,6 +374,10 @@ query ($search: String, $page: Int) {
         site
       }
       genres
+      tags {
+        name
+      }
+      averageScore
       relations {
         edges {
           node {
@@ -606,7 +615,11 @@ async def get_user_activity(id_, user):
             if i['status'] in ["watched episode", "read chapter"]:
                 msg += f"⚬ {str(i['status']).capitalize()} {i['progress']} of {name}\n"
             else:
-                msg += f"⚬ {str(i['status']).capitalize()} {name}\n"
+                progress = i['progress']
+                of = "of"
+                if i['status'] == "dropped":
+                    of = "at"
+                msg += f"⚬ {str(i['status']).capitalize()}{f'{progress} {of} ' if progress is not None else ' '}{name}\n"
         except KeyError:
             pass
     btn = [[InlineKeyboardButton("Back", callback_data=f"getusrbc_{user}")]]
@@ -770,6 +783,12 @@ async def get_anime(vars_, auth: bool = False, user: int = None):
     url = data.get("siteUrl")
     trailer_link = "N/A"
     gnrs = ", ".join(data['genres'])
+    score = data['averageScore']
+    avscd = f"\n➤ **SCORE:** `{score}%` 🌟" if score is not None else ""
+    tags = []
+    for i in data['tags']:
+        tags.append(i["name"])
+    tags_ = f"\n➤ **TAGS:** `{', '.join(tags[:5])}`" if tags != [] else ""
     bot = BOT_NAME.replace("@", "")
     gnrs_ = ""
     if len(gnrs)!=0:
@@ -827,14 +846,7 @@ async def get_anime(vars_, auth: bool = False, user: int = None):
         nextAir = data["nextAiringEpisode"]["timeUntilAiring"]
         air_on = make_it_rw(nextAir*1000)
         eps = data["nextAiringEpisode"]["episode"]
-        ep_ = list(str(eps))
-        x = ep_.pop()
-        th = "th"
-        if len(ep_) >= 1:
-            if ep_.pop() != "1":
-                th = pos_no(x)
-        else:
-            th = pos_no(x)
+        th = pos_no(str(eps))
         air_on += f" | {eps}{th} eps"
     if air_on  is None:
         eps_ = f"` | `{episodes} eps" if episodes is not None else ""
@@ -883,6 +895,12 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
     if len(gnrs)!=0:
         gnrs_ = f"\n➤ **GENRES:** `{gnrs}`"
     fav = ", in Favourites" if isfav is True else ""
+    score = data['averageScore']
+    avscd = f"\n➤ **SCORE:** `{score}%` 🌟" if score is not None else ""
+    tags = []
+    for i in data['tags']:
+        tags.append(i["name"])
+    tags_ = f"\n➤ **TAGS:** `{', '.join(tags[:5])}`" if tags != [] else ""
     in_ls = False
     in_ls_id = ""
     user_data = ""
@@ -929,14 +947,7 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
         nextAir = data["nextAiringEpisode"]["timeUntilAiring"]
         air_on = make_it_rw(nextAir*1000)
         eps = data["nextAiringEpisode"]["episode"]
-        ep_ = list(str(eps))
-        x = ep_.pop()
-        th = "th"
-        if len(ep_) >= 1:
-            if ep_.pop() != "1":
-                th = pos_no(x)
-        else:
-            th = pos_no(x)
+        th = pos_no(str(eps))
         air_on += f" | {eps}{th} eps"
     if air_on  is None:
         eps_ = f"` | `{episodes} eps" if episodes is not None else ""
@@ -1159,7 +1170,7 @@ async def update_anilist(id_, req, user, eid: int = None, status: str = None):
     k = await return_json_senpai(query=(
         ANILIST_MUTATION if req=="lsas"
         else ANILIST_MUTATION_UP if req=="lsus"
-        else ANILIST_MUTATION_DEL), vars=vars_, auth=True, user=int(user))
+        else ANILIST_MUTATION_DEL), vars_=vars_, auth=True, user=int(user))
     try:
         k['data']['SaveMediaListEntry'] if req=="lsas" else k['data']['UpdateMediaListEntries'] if req=="lsus" else k["data"]['DeleteMediaListEntry']
         return "ok"

@@ -1,3 +1,4 @@
+import json
 import requests
 import asyncio
 import os
@@ -7,16 +8,20 @@ from datetime import datetime
 from os.path import basename
 from typing import Tuple, Optional
 from uuid import uuid4
-from pyrogram import Client
 from pyrogram.errors import FloodWait, MessageNotModified
 from pyrogram.types import InlineKeyboardButton, CallbackQuery, Message, InlineKeyboardMarkup
-from .. import OWNER, DOWN_PATH, anibot, LOG_CHANNEL_ID
+from .. import OWNER, DOWN_PATH, anibot, LOG_CHANNEL_ID, has_user
 from ..utils.db import get_collection
+
+if has_user:
+    from .. import user
 
 AUTH_USERS = get_collection("AUTH_USERS")
 IGNORE = get_collection("IGNORED_USERS")
+PIC_DB = get_collection("PIC_DB")
 USER_JSON = {}
 USER_WC = {}
+ANON_JSON = {}
 
 
 ###### credits to @deleteduser420 on tg, code from USERGE-X ######
@@ -27,8 +32,21 @@ def rand_key():
 
 
 def control_user(func):
-    async def wrapper(_, msg: Message):
-        user = msg.from_user.id
+    async def wrapper(_, message: Message):
+        msg = json.loads(str(message))
+        if func.__name__ not in ["pong_", "quote", "feed_", "help_", "list_disabled", "start_", "auth_link_cmd", "logout_cmd", "list_tags_genres_cmd"]:
+            try:
+                msg['sender_chat']
+                key = rand_key()
+                ANON_JSON[key] = [func, message, msg]
+                await message.reply_text('Click the below button to get results', reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton('Click Here', callback_data=f"confirm_{key}")]]))
+                return
+            except KeyError:
+                pass
+        try:
+            user = msg['from_user']['id']
+        except KeyError:
+            user = msg['chat']['id']
         if await IGNORE.find_one({'_id': user}):
             return
         nut = time()
@@ -38,12 +56,13 @@ def control_user(func):
                 if nut-out<1.2:
                     USER_WC[user] += 1
                     if USER_WC[user] == 3:
-                        await msg.reply_text(
+                        await message.reply_text(
                             "Stop spamming bot!!!\nElse you will be blacklisted",
                         )
+                        await clog('ANIBOT', f'UserID: {user}', 'SPAM')
                     if USER_WC[user] == 5:
                         await IGNORE.insert_one({'_id': user})
-                        await msg.reply_text('You have been exempted from using this bot now due to spamming 5 times consecutively!!!\nTo remove restriction plead to @hanabi_support')
+                        await message.reply_text('You have been exempted from using this bot now due to spamming 5 times consecutively!!!\nTo remove restriction plead to @hanabi_support')
                         await clog('ANIBOT', f'UserID: {user}', 'BAN')
                         return
                     await asyncio.sleep(USER_WC[user])
@@ -53,7 +72,7 @@ def control_user(func):
                 pass
             USER_JSON[user] = nut
         try:
-            await func(_, msg)
+            await func(_, message, msg)
         except FloodWait as e:
             await asyncio.sleep(e.x + 5)
         except MessageNotModified:
@@ -63,10 +82,11 @@ def control_user(func):
 
 def check_user(func):
     async def wrapper(_, c_q: CallbackQuery):
-        user = c_q.from_user.id
+        cq = json.loads(str(c_q))
+        user = cq['from_user']['id']
         if await IGNORE.find_one({'_id': user}):
             return
-        if user in OWNER or user==int(c_q.data.split("_").pop()):
+        if user in OWNER or user==int(cq['data'].split("_").pop()):
             if user not in OWNER:
                 nt = time()
                 try:
@@ -80,7 +100,7 @@ def check_user(func):
                     pass
                 USER_JSON[user] = nt
             try:
-                await func(_, c_q)
+                await func(_, c_q, cq)
             except FloodWait as e:
                 await asyncio.sleep(e.x + 5)
             except MessageNotModified:
@@ -93,7 +113,7 @@ def check_user(func):
     return wrapper
 
 
-async def media_to_image(client: Client, message: Message, x: Message, replied: Message):
+async def media_to_image(client: anibot, message: Message, x: Message, replied: Message):
     if not (
         replied.photo
         or replied.sticker
@@ -170,11 +190,10 @@ async def take_screen_shot(
         video_file,
         duration,
     )
-    ttl = duration // 2
     thumb_image_path = path or os.path.join(
         DOWN_PATH, f"{basename(video_file)}.jpg"
     )
-    command = f'''ffmpeg -ss {ttl} -i "{video_file}" -vframes 1 "{thumb_image_path}"'''
+    command = f'''ffmpeg -ss {duration} -i "{video_file}" -vframes 1 "{thumb_image_path}"'''
     err = (await runcmd(command))[1]
     if err:
         print(err)
@@ -187,16 +206,15 @@ async def take_screen_shot(
 async def return_json_senpai(query: str, vars_: dict, auth: bool = False, user: int = None):
     if auth  is False:
         url = "https://graphql.anilist.co"
-        response = requests.post(url, json={"query": query, "variables": vars_}).json()
+        return requests.post(url, json={"query": query, "variables": vars_}).json()
     else:
         headers = {
-        'Authorization': 'Bearer ' + str((await AUTH_USERS.find_one({"id": int(user)}))['token']),
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+            'Authorization': 'Bearer ' + str((await AUTH_USERS.find_one({"id": int(user)}))['token']),
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
         }
         url = "https://graphql.anilist.co"
-        response = requests.post(url, json={"query": query, "variables": vars_}, headers=headers).json()
-    return response
+        return requests.post(url, json={"query": query, "variables": vars_}, headers=headers).json()
 
 
 def cflag(country):
@@ -210,16 +228,13 @@ def cflag(country):
         return "\U0001F1F9\U0001F1FC"
 
 
-def pos_no(x):
+def pos_no(no):
+    ep_ = list(str(no))
+    x = ep_.pop()
+    if ep_ != [] and ep_.pop()=='1':
+        return 'th'
     th = "st" if x == "1" else "nd" if x == "2" else "rd" if x == "3" else "th"
     return th
-
-
-def ss(x: int):
-    if x==1:
-        return ""
-    else:
-        return "s"
 
 
 def make_it_rw(time_stamp):
@@ -339,3 +354,24 @@ def season_(future: bool = False):
         return 'SUMMER', y
     if m in [10, 11, 12]:
         return 'FALL', y
+
+
+m = datetime.now().month
+async def update_pics_cache(link):
+    if not has_user:
+        return
+    k = await PIC_DB.find_one({'_id': 'month'})
+    if k is None:
+        await PIC_DB.insert_one({'_id': 'month', 'm': m})
+    elif m != k['m']:
+        await PIC_DB.drop()
+        await PIC_DB.insert_one({'_id': 'month', 'm': m})
+    if (await PIC_DB.find_one({'_id': link})) is None:
+        await PIC_DB.insert_one({'_id': link})
+        try:
+            await user.send_message("webpagebot", link)
+        except ConnectionError:
+            await asyncio.sleep(5)
+            await user.send_message("webpagebot", link)
+    else:
+        return
