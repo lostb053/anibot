@@ -166,6 +166,10 @@ async def db_cleanup(client: anibot, message: Message, mdata: dict):
             count += 1
             entries += str(await GROUPS.find_one({'id': i['id']}))+'\n\n'
             await GROUPS.find_one_and_delete({'id': i['id']})
+        except pi:
+            count += 1
+            entries += str(await GROUPS.find_one({'id': i['id']}))+'\n\n'
+            await GROUPS.find_one_and_delete({'id': i['id']})
         except fw:
             await asyncio.sleep(fw.x + 5)
     await asyncio.sleep(5)
@@ -179,6 +183,10 @@ async def db_cleanup(client: anibot, message: Message, mdata: dict):
             entries += str(await SFW_GROUPS.find_one({'id': i['id']}))+'\n\n'
             await SFW_GROUPS.find_one_and_delete({'id': i['id']})
         except ci:
+            count += 1
+            entries += str(await SFW_GROUPS.find_one({'id': i['id']}))+'\n\n'
+            await SFW_GROUPS.find_one_and_delete({'id': i['id']})
+        except pi:
             count += 1
             entries += str(await SFW_GROUPS.find_one({'id': i['id']}))+'\n\n'
             await SFW_GROUPS.find_one_and_delete({'id': i['id']})
@@ -214,6 +222,10 @@ async def db_cleanup(client: anibot, message: Message, mdata: dict):
             count += 1
             entries += str(await AG.find_one({'id': i['_id']}))+'\n\n'
             await AG.find_one_and_delete({'_id': i['_id']})
+        except pi:
+            count += 1
+            entries += str(await AG.find_one({'id': i['_id']}))+'\n\n'
+            await AG.find_one_and_delete({'_id': i['_id']})
         except fw:
             await asyncio.sleep(fw.x + 5)
     await asyncio.sleep(5)
@@ -221,8 +233,8 @@ async def db_cleanup(client: anibot, message: Message, mdata: dict):
     async for i in AUTH_USERS.find():
         if i['id']=='pending':
             count += 1
-            entries += str(await AUTH_USERS.find_one({'id': i['_id']}))+'\n\n'
-            await AUTH_USERS.find_one_and_delete({'id': i['_id']})
+            entries += str(await AUTH_USERS.find_one({'_id': i['_id']}))+'\n\n'
+            await AUTH_USERS.find_one_and_delete({'_id': i['_id']})
     async for i in AUTH_USERS.find():
         await asyncio.sleep(2)
         try:
@@ -244,6 +256,10 @@ async def db_cleanup(client: anibot, message: Message, mdata: dict):
             entries += str(await CR_GRPS.find_one({'_id': i['_id']}))+'\n\n'
             await CR_GRPS.find_one_and_delete({'_id': i['_id']})
         except ci:
+            count += 1
+            entries += str(await CR_GRPS.find_one({'_id': i['_id']}))+'\n\n'
+            await CR_GRPS.find_one_and_delete({'_id': i['_id']})
+        except pi:
             count += 1
             entries += str(await CR_GRPS.find_one({'_id': i['_id']}))+'\n\n'
             await CR_GRPS.find_one_and_delete({'_id': i['_id']})
@@ -276,6 +292,10 @@ async def db_cleanup(client: anibot, message: Message, mdata: dict):
             entries += str(await HD_GRPS.find_one({'_id': i['_id']}))+'\n\n'
             await HD_GRPS.find_one_and_delete({'_id': i['_id']})
         except ci:
+            count += 1
+            entries += str(await HD_GRPS.find_one({'_id': i['_id']}))+'\n\n'
+            await HD_GRPS.find_one_and_delete({'_id': i['_id']})
+        except pi:
             count += 1
             entries += str(await HD_GRPS.find_one({'_id': i['_id']}))+'\n\n'
             await HD_GRPS.find_one_and_delete({'_id': i['_id']})

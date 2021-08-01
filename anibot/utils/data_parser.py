@@ -1098,6 +1098,7 @@ async def get_airing(vars_, auth: bool = False, user: int = None):
     if data["nextAiringEpisode"]:
         nextAir = data["nextAiringEpisode"]["timeUntilAiring"]
         episode = data["nextAiringEpisode"]["episode"]
+        th = pos_no(episode)
         air_on = make_it_rw(nextAir*1000)
     title_ = english or romaji
     out = f"[{c_flag}] **{title_}**"
@@ -1105,7 +1106,7 @@ async def get_airing(vars_, auth: bool = False, user: int = None):
     out += f"\n**Status:** `{status}`\n"
     out += user_data
     if air_on:
-        out += f"Airing Episode `{episode}th` in `{air_on}`"
+        out += f"Airing Episode `{episode}{th}` in `{air_on}`"
     site = data["siteUrl"]
     return [coverImg, out], site, [mid, in_ls, in_ls_id, isfav]
 

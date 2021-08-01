@@ -165,7 +165,6 @@ async def character_cmd(client: anibot, message: Message, mdata: dict):
     cap_text = result[1][0]
     buttons = get_btns("CHARACTER", user=user, lsqry=qdb, lspage=1, result=result, auth=auth)
     await client.send_photo(gid, img, caption=cap_text, reply_markup=buttons)
-    await update_pics_cache(img)
 
 
 @anibot.on_message(filters.command(["anilist", f"anilist{BOT_NAME}"], prefixes=trg))
@@ -528,6 +527,7 @@ async def page_btn(client: anibot, cq: CallbackQuery, cdata: dict):
         await cq.edit_message_media(InputMediaPhoto(no_pic[random.randint(0, 4)], caption="This material is marked 18+ and not allowed in this group"), reply_markup=button)
         return
     await cq.edit_message_media(InputMediaPhoto(pic, caption=msg), reply_markup=button)
+    await update_pics_cache(pic)
 
 
 @anibot.on_callback_query(filters.regex(pattern=r"btn_(.*)"))
@@ -543,6 +543,7 @@ async def anime_btn(client: anibot, cq: CallbackQuery, cdata: dict):
     pic, msg = result[0], result[1]
     btns = get_btns("ANIME", result=result, user=user, auth=authbool)
     await cq.edit_message_media(InputMediaPhoto(pic, caption=msg), reply_markup=btns)
+    await update_pics_cache(pic)
 
 
 @anibot.on_callback_query(filters.regex(pattern=r"topanimu_(.*)"))
@@ -815,7 +816,7 @@ async def update_anilist_btn(client: anibot, cq: CallbackQuery, cdata: dict):
     )
     pic, msg = (
         (result[0], result[1]) if query[2]=="ANIME" and len(query)==4 or len(query)==5
-        else (result[0]) if query[2]=="AIRING"
+        else (result[0][0], result[0][1]) if query[2]=="AIRING"
         else (result[0], result[1][0])
     )
     btns = get_btns(
