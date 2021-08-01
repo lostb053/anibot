@@ -16,8 +16,8 @@ ANIME_TEMPLATE = """{name}
 **ID | MAL ID:** `{idm}` | `{idmal}`
 ➤ **SOURCE:** `{source}`
 ➤ **TYPE:** `{formats}`{avscd}{dura}{user_data}
-{status_air}{gnrs_}{tags_}
 ➤ **ADULT RATED:** `{adult}`
+{status_air}{gnrs_}{tags_}
 
 🎬 {trailer_link}
 📖 <a href="{surl}">Synopsis</a>

@@ -233,7 +233,6 @@ async def flex_cmd(client: anibot, message: Message, mdata: dict):
         return await k.delete()
     pic, msg, buttons = result
     await client.send_photo(gid, pic, caption=msg, reply_markup=buttons)
-    await update_pics_cache(pic)
 
 
 @anibot.on_message(filters.command(["top", f"top{BOT_NAME}"], prefixes=trg))
