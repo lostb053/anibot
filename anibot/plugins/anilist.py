@@ -815,8 +815,8 @@ async def update_anilist_btn(client: anibot, cq: CallbackQuery, cdata: dict):
         else (await get_airing({"id": idm}, auth=True, user=user))
     )
     pic, msg = (
-        (result[0], result[1]) if query[2]=="ANIME" and len(query)==4 or len(query)==5
-        else (result[0][0], result[0][1]) if query[2]=="AIRING"
+        (result[0], result[1]) if query[2]=="ANIME" and (len(query)==4 or len(query)==5)
+        else (result[0]) if query[2]=="AIRING"
         else (result[0], result[1][0])
     )
     btns = get_btns(
