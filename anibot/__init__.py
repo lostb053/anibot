@@ -19,6 +19,11 @@ HELP_DICT = dict()
 plugins = dict(root="anibot/plugins")
 anibot = Client("anibot", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH, plugins=plugins)
 
+has_user: bool = False
+if os.environ.get('USER_SESSION'):
+    has_user: bool = True
+    user = Client(os.environ.get('USER_SESSION'), api_id=API_ID, api_hash=API_HASH)
+
 HELP_DICT['Misc'] = '''
 Group based commands:
 
