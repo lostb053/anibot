@@ -1,7 +1,7 @@
 pyrogram
 tgcrypto
 requests
-aiofiles>=0.6.0
+aiohttp
 aiohttp[speedups]>=3.7.3
 tracemoepy
 lottie
