@@ -13,24 +13,22 @@ from datetime import datetime
 from natsort import natsorted
 from pyrogram import filters
 from pyrogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
-from pyrogram.errors import ChannelInvalid as ci, ChannelPrivate as cp, PeerIdInvalid as pi, FloodWait as fw
-from .. import BOT_NAME, TRIGGERS as trg, OWNER, HELP_DICT, anibot, DOWN_PATH, LOG_CHANNEL_ID
-from ..utils.db import get_collection
-from ..utils.helper import (
+from pyrogram.errors import (
+    ChannelInvalid as ci, ChannelPrivate as cp,
+    PeerIdInvalid as pi, FloodWait as fw
+)
+from anibot import (
+    BOT_NAME, TRIGGERS as trg, OWNER, 
+    HELP_DICT, anibot, DOWN_PATH, LOG_CHANNEL_ID
+)
+from anibot.utils.db import get_collection
+from anibot.utils.helper import (
     AUTH_USERS, clog, check_user, control_user, rand_key, return_json_senpai,
     runcmd, take_screen_shot, IGNORE, media_to_image, make_it_rw,
     USER_JSON, USER_WC
 )
-from ..utils.data_parser import (
-    get_all_genres, get_all_tags, get_top_animes, get_user_activity, get_user_favourites, toggle_favourites, parse_filler,
-    get_anime, get_airing, get_anilist, get_character, get_additional_info, get_manga, browse_, get_wo, get_wols, AIR_QUERY,
-    get_featured_in_lists, update_anilist, get_user, ANIME_DB, MANGA_DB, CHAR_DB, get_scheduled, search_filler, ANIME_QUERY,
-    ACTIVITY_QUERY, ALLTOP_QUERY, ANILIST_MUTATION, ANILIST_MUTATION_DEL, ANILIST_MUTATION_UP, ANIME_MUTATION, BROWSE_QUERY,
-    ANIME_TEMPLATE, CHA_INFO_QUERY, CHAR_MUTATION, CHARACTER_QUERY, DES_INFO_QUERY, DESC_INFO_QUERY, FAV_ANI_QUERY, GET_TAGS,
-    FAV_CHAR_QUERY, FAV_MANGA_QUERY, GET_GENRES, ISADULT, LS_INFO_QUERY, MANGA_MUTATION, MANGA_QUERY, PAGE_QUERY, TOP_QUERY,
-    REL_INFO_QUERY, TOPT_QUERY, USER_QRY, VIEWER_QRY
-)
-from .anilist import auth_link_cmd, code_cmd, logout_cmd
+from anibot.utils.data_parser import *
+from anibot.plugins.anilist import auth_link_cmd, code_cmd, logout_cmd
 
 USERS = get_collection("USERS")
 GROUPS = get_collection("GROUPS")

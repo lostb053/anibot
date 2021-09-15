@@ -7,7 +7,7 @@ __all__ = ['get_collection']
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from motor.core import AgnosticClient, AgnosticDatabase, AgnosticCollection
-from .. import DB_URL
+from anibot import DB_URL
 
 print("Connecting to Database ...")
 

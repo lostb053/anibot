@@ -1,10 +1,10 @@
 # uses jikanpy (Jikan API)
 from pyrogram import filters
 from pyrogram.types import Message, CallbackQuery
-from .. import BOT_NAME, TRIGGERS as trg, anibot
-from ..utils.data_parser import get_scheduled
-from ..utils.helper import control_user, get_btns, check_user
-from ..utils.db import get_collection
+from anibot import BOT_NAME, TRIGGERS as trg, anibot
+from anibot.utils.data_parser import get_scheduled
+from anibot.utils.helper import control_user, get_btns, check_user
+from anibot.utils.db import get_collection
 
 DC = get_collection('DISABLED_CMDS')
 

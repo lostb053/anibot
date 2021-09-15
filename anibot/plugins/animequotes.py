@@ -1,9 +1,9 @@
 import requests
 from pyrogram import filters
 from pyrogram.types import Message
-from .. import BOT_NAME, TRIGGERS as trg, anibot
-from ..utils.helper import control_user
-from ..utils.db import get_collection
+from anibot import BOT_NAME, TRIGGERS as trg, anibot
+from anibot.utils.helper import control_user
+from anibot.utils.db import get_collection
 
 DC = get_collection('DISABLED_CMDS')
 

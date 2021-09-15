@@ -15,14 +15,23 @@ import os
 from pyrogram import filters
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, Message
 from pyrogram.errors import UserNotParticipant
-from .. import ANILIST_CLIENT, ANILIST_REDIRECT_URL, ANILIST_SECRET, OWNER, TRIGGERS as trg, BOT_NAME, anibot
-from ..utils.data_parser import (
-    get_all_genres, get_all_tags, get_top_animes, get_user_activity, get_user_favourites, toggle_favourites,
-    get_anime, get_airing, get_anilist, get_character, get_additional_info, get_manga, browse_,
-    get_featured_in_lists, update_anilist, get_user, ANIME_DB, MANGA_DB, CHAR_DB
+from anibot import (
+    ANILIST_CLIENT, ANILIST_REDIRECT_URL,
+    ANILIST_SECRET, OWNER, TRIGGERS as trg, BOT_NAME, anibot
 )
-from ..utils.helper import ANON_JSON, check_user, get_btns, AUTH_USERS, rand_key, clog, control_user, update_pics_cache
-from ..utils.db import get_collection
+from anibot.utils.data_parser import (
+    get_all_genres, get_all_tags, get_top_animes,
+    get_user_activity, get_user_favourites, toggle_favourites,
+    get_anime, get_airing, get_anilist, get_character,
+    get_additional_info, get_manga, browse_,
+    get_featured_in_lists, update_anilist, 
+    get_user, ANIME_DB, MANGA_DB, CHAR_DB
+)
+from anibot.utils.helper import (
+    ANON_JSON, check_user, get_btns, 
+    AUTH_USERS, rand_key, clog, control_user, update_pics_cache
+)
+from anibot.utils.db import get_collection
 
 GROUPS = get_collection("GROUPS")
 SFW_GRPS = get_collection("SFW_GROUPS")

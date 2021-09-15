@@ -1,7 +1,7 @@
 import asyncio
 from pyrogram import idle
-from . import anibot, has_user
-from .utils.db import _close_db
+from anibot import anibot, has_user
+from anibot.utils.db import _close_db
 
 user = None
 if has_user:

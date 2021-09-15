@@ -12,11 +12,11 @@ from tracemoepy.errors import ServerError
 from aiohttp import ClientSession
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, InputMediaPhoto, InputMediaVideo, Message
-from .. import BOT_NAME, TRIGGERS as trg, anibot
-from ..utils.helper import check_user, control_user, media_to_image, rand_key
-from ..utils.data_parser import check_if_adult
-from ..utils.db import get_collection
-from .anilist import no_pic
+from anibot import BOT_NAME, TRIGGERS as trg, anibot
+from anibot.utils.helper import check_user, control_user, media_to_image, rand_key
+from anibot.utils.data_parser import check_if_adult
+from anibot.utils.db import get_collection
+from anibot.plugins.anilist import no_pic
 
 SFW_GRPS = get_collection("SFW_GROUPS")
 DC = get_collection('DISABLED_CMDS')

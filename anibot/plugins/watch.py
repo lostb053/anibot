@@ -3,10 +3,10 @@
 
 from pyrogram import filters
 from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
-from .. import BOT_NAME, TRIGGERS as trg, anibot
-from ..utils.data_parser import get_wo, get_wols
-from ..utils.helper import check_user, control_user
-from ..utils.db import get_collection
+from anibot import BOT_NAME, TRIGGERS as trg, anibot
+from anibot.utils.data_parser import get_wo, get_wols
+from anibot.utils.helper import check_user, control_user
+from anibot.utils.db import get_collection
 
 DC = get_collection('DISABLED_CMDS')
 

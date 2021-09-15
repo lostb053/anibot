@@ -5,8 +5,8 @@ from bs4 import BeautifulSoup as bs
 from collections import defaultdict
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from .. import anibot
-from ..utils.db import get_collection
+from anibot import anibot
+from anibot.utils.db import get_collection
 
 url_a = "https://www.livechart.me/feeds/episodes"
 url_b = 'https://feeds.feedburner.com/crunchyroll/rss/anime?format=xml'

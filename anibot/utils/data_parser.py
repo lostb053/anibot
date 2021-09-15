@@ -1,8 +1,8 @@
 import requests
 import time
 from bs4 import BeautifulSoup
-from .helper import cflag, make_it_rw, pos_no, return_json_senpai, day_, season_
-from .. import BOT_NAME
+from anibot.utils.helper import cflag, make_it_rw, pos_no, return_json_senpai, day_, season_
+from anibot import BOT_NAME
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from jikanpy import AioJikan
 from datetime import datetime
