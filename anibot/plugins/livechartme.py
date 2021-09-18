@@ -46,13 +46,10 @@ async def livechart_parser():
     msgslc = []
     msgscr = []
     msgssp = []
-    msgslch = []
     lc = []
     cr = []
     sp = []
     hd = []
-
-
 #### LiveChart.me / airing ####
     clc = defaultdict(list)
     for i in da.findAll("item"):
@@ -77,8 +74,6 @@ async def livechart_parser():
             text = f'\nEpisode {clc[i][0][0]} of {i} just aired'
         msgslc.append([text, clc[i][0][1]])
 ###############################
-
-
 #### CrunchyRoll.com ####
     clc = defaultdict(list)
     fk = []
@@ -104,11 +99,9 @@ async def livechart_parser():
         hmm = []
         for ii in clc[i]:
             hmm.append(ii[0].split()[1])
-        aep = [hmm[len(hmm)-1], hmm[0]] if len(hmm)!=1 and hmm[len(hmm)-1]!=hmm[0] else [hmm[0]]
+        aep = [hmm[-1], hmm[0]] if len(hmm)!=1 and hmm[-1] != hmm[0] else [hmm[0]]
         msgscr.append([f"**New anime released on Crunchyroll**\n\n**Title:** {i}\n**Episode:** {aep[0] if len(aep)==1 or min(aep)==max(aep) else min(aep)+' - '+max(aep)}\n{'**EP Title:** '+ii[1] if len(ii)==3 else ''}", ii[1] if len(ii)!=3 else ii[2]])
 #########################
-
-
 ##### Subsplease.org #####
     ls = defaultdict(list)
     for i in dc.findAll('item'):
@@ -121,19 +114,15 @@ async def livechart_parser():
         hmm = i[0].split('__________')
         ls[hmm[0]].append([hmm[1].replace(')', '').replace('(', ''), i[1]])
     updated = False
-    for i in ls.keys():
+    for i, value in ls.items():
         if len(ls[i])==3:
             if not updated:
                 await C.drop()
                 await C.insert_one({'_id': i})
                 updated = True
-            listlinks = ""
-            for ii in ls[i]:
-                listlinks += '\n__'+ii[0]+'__: [Link]('+ii[1]+')'
+            listlinks = "".join('\n__'+ii[0]+'__: [Link]('+ii[1]+')' for ii in value)
             msgssp.append(['**New anime uploaded on Subsplease**\n\n' + i + listlinks, 'https://nyaa.si/?q='+re.sub(r' ', '%20', re.sub(r'(\().*?(\))', r'', i).strip())])
 ##########################
-
-
 #### LiveChart.me / headlines ####
     for i in dd.findAll("item"):
         if (await D.find_one())['_id'] == str(i.find('title')):
@@ -145,8 +134,7 @@ async def livechart_parser():
     if count_c!=0:
         await D.drop()
         await D.insert_one({'_id': str(dd.find('item').find('title')), 'guid': str(dd.find('item').find('guid'))})
-    for i in hd:
-        msgslch.append([i[3], i[0], i[1], i[2]])
+    msgslch = [[i[3], i[0], i[1], i[2]] for i in hd]
 ##################################
 
 
@@ -173,7 +161,7 @@ async def livechart_parser():
                 btn = InlineKeyboardMarkup([[InlineKeyboardButton("Download", url=i[1])]])
                 await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
                 await asyncio.sleep(1.5)
-    await asyncio.sleep(10)    
+    await asyncio.sleep(10)
     print('Notifying Headlines!!!')
     for i in msgslch:
         if await HD_GRPS.find_one() is not None:

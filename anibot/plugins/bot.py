@@ -343,7 +343,7 @@ async def start_(client: anibot, message: Message, mdata: dict):
         return
     bot = await client.get_me()
     if gid==user:
-        if not (user in OWNER) and not (await USERS.find_one({"id": user})):
+        if user not in OWNER and not (await USERS.find_one({"id": user})):
             try:
                 usertitle = mdata['from_user']['username']
             except KeyError:
@@ -426,15 +426,14 @@ Use /feedback cmd to contact bot owner'''
 
 Apart from above shown cmds"""
         )
+    elif gid==id_:
+        await client.send_message(gid, text=text, reply_markup=buttons)
     else:
-        if gid==id_:
-            await client.send_message(gid, text=text, reply_markup=buttons)
-        else:
-            await client.send_message(
-                gid,
-                text="Click below button for bot help",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Help", url=f"https://t.me/{bot_us}/?start=help")]])
-            )
+        await client.send_message(
+            gid,
+            text="Click below button for bot help",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Help", url=f"https://t.me/{bot_us}/?start=help")]])
+        )
 
 
 @anibot.on_callback_query(filters.regex(pattern=r"help_(.*)"))

@@ -72,7 +72,10 @@ async def trace_bek(client: anibot, message: Message, mdata: dict):
         dls_js = rand_key()
         TRACE_MOE[dls_js] = dls_loc
         button.append([InlineKeyboardButton("Next", callback_data=f"tracech_1_{dls_js}_{mdata['from_user']['id']}")])
-        await (message.reply_video if nsfw is False else message.reply_photo)(msg, caption=caption, reply_markup=InlineKeyboardMarkup(button))
+        await (message.reply_video if not nsfw else message.reply_photo)(
+            msg, caption=caption, reply_markup=InlineKeyboardMarkup(button)
+        )
+
     else:
         await message.reply_text("Couldn't parse results!!!")
     await x.delete()
