@@ -38,7 +38,7 @@ async def livechart_parser():
         await C.insert_one({'_id': str(dc.find('item').find('title'))})
         return
     if (await D.find_one()) is None:
-        await D.insert_one({'_id': str(dd.find('item').find('title'))})
+        await D.insert_one({'_id': str(dd.find('item').find('title')), 'guid': str(dd.find('item').find('guid'))})
         return
     count_a = 0
     count_b = 0
