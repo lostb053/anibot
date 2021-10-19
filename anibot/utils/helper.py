@@ -329,13 +329,16 @@ def get_auth_btns(media, user, data, lsqry: str = None, lspage: int = None):
 
 
 def day_(x: int):
-    if x == 0: return "Monday"
-    if x == 1: return "Tuesday"
-    if x == 2: return "Wednesday"
-    if x == 3: return "Thursday"
-    if x == 4: return "Friday"
-    if x == 5: return "Saturday"
-    if x == 6: return "Sunday"
+    day_list = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+    ]
+    return day_list[x - 1]
 
 
 def season_(future: bool = False):
