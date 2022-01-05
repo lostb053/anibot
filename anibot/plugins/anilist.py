@@ -328,14 +328,7 @@ async def auth_link_cmd(client, message: Message, mdata: dict):
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Auth", url=f"https://t.me/{BOT_NAME.replace('@', '')}/?start=auth")]])
         )
 
-
-@anibot.on_message(~filters.private & filters.command(["settings", f"settings{BOT_NAME}"], prefixes=trg))
-@control_user
-async def sfw_cmd(client: Client, message: Message, mdata: dict):
-    user = mdata['from_user']['id']
-    cid = mdata['chat']['id']
-    if user in OWNER or (await client.get_chat_member(cid, user)).status!='member':
-        text = """
+setting_text = """
 This allows you to change group settings
         
 NSFW toggle switches on filtering of 18+ marked content
@@ -344,6 +337,13 @@ Crunchyroll updates will toggle notifications about release of animes on crunchy
 Subsplease updates will toggle notifications about release of animes on subsplease site
 Headlines will toggle notifications for anime news powered by livechart.me
 """
+@anibot.on_message(~filters.private & filters.command(["settings", f"settings{BOT_NAME}"], prefixes=trg))
+@control_user
+async def sfw_cmd(client: Client, message: Message, mdata: dict):
+    user = mdata['from_user']['id']
+    cid = mdata['chat']['id']
+    if user in OWNER or (await client.get_chat_member(cid, user)).status!='member':
+        
         sfw = "NSFW: Allowed"
         if await (SFW_GRPS.find_one({"id": cid})):
             sfw = "NSFW: Not Allowed"
@@ -360,7 +360,7 @@ Headlines will toggle notifications for anime news powered by livechart.me
         if await (HD.find_one({"_id": cid})):
             hd = "Headlines: ON"
         await message.reply_text(
-            text = text,
+            text = setting_text,
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton(text=sfw, callback_data=f"settogl_sfw_{cid}")],
                 [InlineKeyboardButton(text=notif, callback_data=f"settogl_notif_{cid}")],
@@ -658,6 +658,8 @@ async def nsfw_toggle_btn(client: Client, cq: CallbackQuery):
         [InlineKeyboardButton(text=hd, callback_data=f"settogl_hd_{query[2]}")],
         [InlineKeyboardButton(text="Change UI", callback_data=f"cui_call_{query[2]}")]
     ])
+    if query[1]=="call":
+        await cq.edit_message_text(text = setting_text, reply_markup=btns)
     await cq.edit_message_reply_markup(reply_markup=btns)
 
 
