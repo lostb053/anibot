@@ -1252,6 +1252,8 @@ async def get_manga(qdb, page, auth: bool = False, user: int = None, cid: int = 
     finals_ += f"{bl}**{text[1]}:** `{format_}`\n"
     finals_ += f"{bl}**{text[0]}:** `{source}`\n"
     finals_ += user_data
+    if os.environ.get("PREFERRED_LANGUAGE"):
+        description = tr.translate(description, lang_tgt=os.environ.get("PREFERRED_LANGUAGE"))
     finals_ += f"\n{text[12]}: `{description}`\n\n"
     pic = f"https://img.anili.st/media/{idm}"
     return pic, [finals_, result["data"]["Page"]["pageInfo"]["total"], url], [idm, in_ls, in_ls_id, isfav, str(adult)]
