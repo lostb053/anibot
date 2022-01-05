@@ -12,7 +12,7 @@ from tracemoepy.errors import ServerError
 from aiohttp import ClientSession
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, InputMediaPhoto, InputMediaVideo, Message
-from .. import BOT_NAME, TRIGGERS as trg, anibot
+from .. import BOT_NAME, TRIGGERS as trg, anibot, session
 from ..utils.helper import check_user, control_user, media_to_image, rand_key
 from ..utils.data_parser import check_if_adult
 from ..utils.db import get_collection
@@ -40,7 +40,7 @@ async def trace_bek(client: anibot, message: Message, mdata: dict):
         return
     dls_loc = await media_to_image(client, message, x, replied)
     if dls_loc:
-        async with ClientSession() as session:
+        async with session:
             tracemoe = tracemoepy.AsyncTrace(session=session)
             try:
                 search = await tracemoe.search(dls_loc, upload_file=True)
@@ -51,6 +51,10 @@ async def trace_bek(client: anibot, message: Message, mdata: dict):
                 except ServerError:
                     await x.edit_text('Couldnt parse results!!!')
                     return
+            except RuntimeError:
+                cs = ClientSession()
+                tracemoe = tracemoepy.AsyncTrace(session=cs)
+                search = await tracemoe.search(dls_loc, upload_file=True)
             result = search["result"][0]
             caption_ = (
                 f"**Title**: {result['anilist']['title']['english']} (`{result['anilist']['title']['native']}`)\n"
@@ -59,6 +63,8 @@ async def trace_bek(client: anibot, message: Message, mdata: dict):
                 f"\n**Episode**: `{result['episode']}`"
             )
             preview = result['video']
+            dls_js = rand_key()
+            TRACE_MOE[dls_js] = search
         button = []
         nsfw = False
         if await check_if_adult(int(result['anilist']['id']))=="True" and await (SFW_GRPS.find_one({"id": gid})):
@@ -69,8 +75,6 @@ async def trace_bek(client: anibot, message: Message, mdata: dict):
             msg = preview
             caption=caption_
             button.append([InlineKeyboardButton("More Info", url=f"https://anilist.co/anime/{result['anilist']['id']}")])
-        dls_js = rand_key()
-        TRACE_MOE[dls_js] = dls_loc
         button.append([InlineKeyboardButton("Next", callback_data=f"tracech_1_{dls_js}_{mdata['from_user']['id']}")])
         await (message.reply_video if nsfw is False else message.reply_photo)(msg, caption=caption, reply_markup=InlineKeyboardMarkup(button))
     else:
@@ -86,20 +90,15 @@ async def tracemoe_btn(client: anibot, cq: CallbackQuery, cdata: dict):
         TRACE_MOE[dls_loc]
     except KeyError:
         return await cq.answer("Query Expired!!!\nCreate new one", show_alert=True)
-    async with ClientSession() as session:
-        tracemoe = tracemoepy.AsyncTrace(session=session)
-        try:
-            search = await tracemoe.search(TRACE_MOE[dls_loc], upload_file=True)
-        except ServerError:
-            return await cq.answer("ServerError!!!\nTry again after some time", show_alert=True)
-        result = search["result"][int(page)]
-        caption = (
-            f"**Title**: {result['anilist']['title']['english']} (`{result['anilist']['title']['native']}`)\n"
-            f"\n**Anilist ID:** `{result['anilist']['id']}`"
-            f"\n**Similarity**: `{(str(result['similarity']*100))[:5]}`"
-            f"\n**Episode**: `{result['episode']}`"
-        )
-        preview = result['video']
+    search = TRACE_MOE[dls_loc]
+    result = search["result"][int(page)]
+    caption = (
+        f"**Title**: {result['anilist']['title']['english']} (`{result['anilist']['title']['native']}`)\n"
+        f"\n**Anilist ID:** `{result['anilist']['id']}`"
+        f"\n**Similarity**: `{(str(result['similarity']*100))[:5]}`"
+        f"\n**Episode**: `{result['episode']}`"
+    )
+    preview = result['video']
     button = []
     if await check_if_adult(int(result['anilist']['id']))=="True" and await (SFW_GRPS.find_one({"id": cq.message.chat.id})):
         msg = InputMediaPhoto(no_pic[random.randint(0, 4)], caption="The results parsed seems to be 18+ and not allowed in this group")

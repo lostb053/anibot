@@ -38,7 +38,7 @@ async def livechart_parser():
         await C.insert_one({'_id': str(dc.find('item').find('title'))})
         return
     if (await D.find_one()) is None:
-        await D.insert_one({'_id': str(dd.find('item').find('title')), 'guid': str(dd.find('item').find('guid'))})
+        await D.insert_one({'_id': str(dd.find('item').find('title'))})
         return
     count_a = 0
     count_b = 0
@@ -155,24 +155,33 @@ async def livechart_parser():
         if await AR_GRPS.find_one() is not None:
             async for id_ in AR_GRPS.find():
                 btn = InlineKeyboardMarkup([[InlineKeyboardButton("More Info", url=i[1])]])
-                await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
-                await asyncio.sleep(1.5)
+                try:
+                    await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
+                    await asyncio.sleep(1.5)
+                except Exception as e:
+                    await AR_GRPS.find_one_and_delete({'_id': id_['_id']})
     await asyncio.sleep(10)
     print('Notifying Crunchyroll releases!!!')
     for i in msgscr:
         if await CR_GRPS.find_one() is not None:
             async for id_ in CR_GRPS.find():
                 btn = InlineKeyboardMarkup([[InlineKeyboardButton("More Info", url=i[1])]])
-                await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
-                await asyncio.sleep(1.5)
+                try:
+                    await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
+                    await asyncio.sleep(1.5)
+                except:
+                    await CR_GRPS.find_one_and_delete({'_id': id_['_id']})
     await asyncio.sleep(10)
     print('Notifying Subsplease releases!!!')
     for i in msgssp:
         if await SP_GRPS.find_one() is not None:
             async for id_ in SP_GRPS.find():
                 btn = InlineKeyboardMarkup([[InlineKeyboardButton("Download", url=i[1])]])
-                await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
-                await asyncio.sleep(1.5)
+                try:
+                    await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
+                    await asyncio.sleep(1.5)
+                except Exception as e:
+                    await SP_GRPS.find_one_and_delete({'_id': id_['_id']})
     await asyncio.sleep(10)    
     print('Notifying Headlines!!!')
     for i in msgslch:
@@ -182,8 +191,11 @@ async def livechart_parser():
                     InlineKeyboardButton("More Info", url=i[2]),
                     InlineKeyboardButton("Source", url=i[3]),
                 ]])
-                await anibot.send_photo(id_['_id'], i[0], caption=i[1], reply_markup=btn)
-                await asyncio.sleep(1.5)
+                try:
+                    await anibot.send_photo(id_['_id'], i[0], caption=i[1], reply_markup=btn)
+                    await asyncio.sleep(1.5)
+                except Exception as e:
+                    await HD_GRPS.find_one_and_delete({'_id': id_['_id']})
 
 scheduler = AsyncIOScheduler()
 scheduler.add_job(livechart_parser, "interval", minutes=4)

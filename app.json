@@ -45,6 +45,10 @@
         "TRIGGERS":{
             "description":"Custom triggers, for multiple, just put a space between like '/ ?'. / and ! are defaults",
             "required":false
+        },
+        "PREFFERED_LANGUAGE":{
+            "description":"Sets custom description language, let's say you want all descriptions in Malay. Check and add appropriate language code from http://telegra.ph/Supported-Languages-01-05-2",
+            "required":false
         }
     },
     "buildpacks":[

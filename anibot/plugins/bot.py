@@ -17,7 +17,7 @@ from pyrogram.errors import ChannelInvalid as ci, ChannelPrivate as cp, PeerIdIn
 from .. import BOT_NAME, TRIGGERS as trg, OWNER, HELP_DICT, anibot, DOWN_PATH, LOG_CHANNEL_ID
 from ..utils.db import get_collection
 from ..utils.helper import (
-    AUTH_USERS, clog, check_user, control_user, rand_key, return_json_senpai,
+    AUTH_USERS, clog, check_user, control_user, get_btns, rand_key, return_json_senpai,
     runcmd, take_screen_shot, IGNORE, media_to_image, make_it_rw,
     USER_JSON, USER_WC
 )
@@ -28,7 +28,7 @@ from ..utils.data_parser import (
     ACTIVITY_QUERY, ALLTOP_QUERY, ANILIST_MUTATION, ANILIST_MUTATION_DEL, ANILIST_MUTATION_UP, ANIME_MUTATION, BROWSE_QUERY,
     ANIME_TEMPLATE, CHA_INFO_QUERY, CHAR_MUTATION, CHARACTER_QUERY, DES_INFO_QUERY, DESC_INFO_QUERY, FAV_ANI_QUERY, GET_TAGS,
     FAV_CHAR_QUERY, FAV_MANGA_QUERY, GET_GENRES, ISADULT, LS_INFO_QUERY, MANGA_MUTATION, MANGA_QUERY, PAGE_QUERY, TOP_QUERY,
-    REL_INFO_QUERY, TOPT_QUERY, USER_QRY, VIEWER_QRY
+    REL_INFO_QUERY, TOPT_QUERY, USER_QRY, VIEWER_QRY, RECOMMENDTIONS_QUERY, get_recommendations
 )
 from .anilist import auth_link_cmd, code_cmd, logout_cmd
 
@@ -162,74 +162,36 @@ async def db_cleanup(client: anibot, message: Message, mdata: dict):
             count += 1
             entries += str(await GROUPS.find_one({'id': i['id']}))+'\n\n'
             await GROUPS.find_one_and_delete({'id': i['id']})
+            await SFW_GROUPS.find_one_and_delete({'id': i['id']})
+            await DC.find_one_and_delete({'_id': i['id']})
+            await AG.find_one_and_delete({'_id': i['id']})
+            await HD_GRPS.find_one_and_delete({'_id': i['id']})
+            await SP_GRPS.find_one_and_delete({'_id': i['id']})
+            await CR_GRPS.find_one_and_delete({'_id': i['id']})
         except ci:
             count += 1
             entries += str(await GROUPS.find_one({'id': i['id']}))+'\n\n'
             await GROUPS.find_one_and_delete({'id': i['id']})
+            await SFW_GROUPS.find_one_and_delete({'id': i['id']})
+            await DC.find_one_and_delete({'_id': i['id']})
+            await AG.find_one_and_delete({'_id': i['id']})
+            await HD_GRPS.find_one_and_delete({'_id': i['id']})
+            await SP_GRPS.find_one_and_delete({'_id': i['id']})
+            await CR_GRPS.find_one_and_delete({'_id': i['id']})
         except pi:
             count += 1
             entries += str(await GROUPS.find_one({'id': i['id']}))+'\n\n'
             await GROUPS.find_one_and_delete({'id': i['id']})
+            await SFW_GROUPS.find_one_and_delete({'id': i['id']})
+            await DC.find_one_and_delete({'_id': i['id']})
+            await AG.find_one_and_delete({'_id': i['id']})
+            await HD_GRPS.find_one_and_delete({'_id': i['id']})
+            await SP_GRPS.find_one_and_delete({'_id': i['id']})
+            await CR_GRPS.find_one_and_delete({'_id': i['id']})
         except fw:
             await asyncio.sleep(fw.x + 5)
     await asyncio.sleep(5)
     await x.edit_text("Checking 2nd collection!!!")
-    async for i in SFW_GROUPS.find():
-        await asyncio.sleep(2)
-        try:
-            await client.get_chat(i['id'])
-        except cp:
-            count += 1
-            entries += str(await SFW_GROUPS.find_one({'id': i['id']}))+'\n\n'
-            await SFW_GROUPS.find_one_and_delete({'id': i['id']})
-        except ci:
-            count += 1
-            entries += str(await SFW_GROUPS.find_one({'id': i['id']}))+'\n\n'
-            await SFW_GROUPS.find_one_and_delete({'id': i['id']})
-        except pi:
-            count += 1
-            entries += str(await SFW_GROUPS.find_one({'id': i['id']}))+'\n\n'
-            await SFW_GROUPS.find_one_and_delete({'id': i['id']})
-        except fw:
-            await asyncio.sleep(fw.x + 5)
-    await asyncio.sleep(5)
-    await x.edit_text("Checking 3rd collection!!!")
-    async for i in DC.find():
-        await asyncio.sleep(2)
-        try:
-            await client.get_chat(i['_id'])
-        except cp:
-            count += 1
-            entries += str(await DC.find_one({'_id': i['_id']}))+'\n\n'
-            await DC.find_one_and_delete({'_id': i['_id']})
-        except ci:
-            count += 1
-            entries += str(await DC.find_one({'_id': i['_id']}))+'\n\n'
-            await DC.find_one_and_delete({'_id': i['_id']})
-        except fw:
-            await asyncio.sleep(fw.x + 5)
-    await asyncio.sleep(5)
-    await x.edit_text("Checking 4th collection!!!")
-    async for i in AG.find():
-        await asyncio.sleep(2)
-        try:
-            await client.get_chat(i['_id'])
-        except cp:
-            count += 1
-            entries += str(await AG.find_one({'id': i['_id']}))+'\n\n'
-            await AG.find_one_and_delete({'_id': i['_id']})
-        except ci:
-            count += 1
-            entries += str(await AG.find_one({'id': i['_id']}))+'\n\n'
-            await AG.find_one_and_delete({'_id': i['_id']})
-        except pi:
-            count += 1
-            entries += str(await AG.find_one({'id': i['_id']}))+'\n\n'
-            await AG.find_one_and_delete({'_id': i['_id']})
-        except fw:
-            await asyncio.sleep(fw.x + 5)
-    await asyncio.sleep(5)
-    await x.edit_text("Checking 5th collection!!!")
     async for i in AUTH_USERS.find():
         if i['id']=='pending':
             count += 1
@@ -243,62 +205,6 @@ async def db_cleanup(client: anibot, message: Message, mdata: dict):
             count += 1
             entries += str(await AUTH_USERS.find_one({'id': i['id']}))+'\n\n'
             await AUTH_USERS.find_one_and_delete({'id': i['id']})
-        except fw:
-            await asyncio.sleep(fw.x + 5)
-    await asyncio.sleep(5)
-    await x.edit_text("Checking 6th collection!!!")
-    async for i in CR_GRPS.find():
-        await asyncio.sleep(2)
-        try:
-            await client.get_chat(i['_id'])
-        except cp:
-            count += 1
-            entries += str(await CR_GRPS.find_one({'_id': i['_id']}))+'\n\n'
-            await CR_GRPS.find_one_and_delete({'_id': i['_id']})
-        except ci:
-            count += 1
-            entries += str(await CR_GRPS.find_one({'_id': i['_id']}))+'\n\n'
-            await CR_GRPS.find_one_and_delete({'_id': i['_id']})
-        except pi:
-            count += 1
-            entries += str(await CR_GRPS.find_one({'_id': i['_id']}))+'\n\n'
-            await CR_GRPS.find_one_and_delete({'_id': i['_id']})
-        except fw:
-            await asyncio.sleep(fw.x + 5)
-    await asyncio.sleep(5)
-    await x.edit_text("Checking 7th collection!!!")
-    async for i in SP_GRPS.find():
-        await asyncio.sleep(2)
-        try:
-            await client.get_chat(i['_id'])
-        except cp:
-            count += 1
-            entries += str(await SP_GRPS.find_one({'_id': i['_id']}))+'\n\n'
-            await SP_GRPS.find_one_and_delete({'_id': i['_id']})
-        except ci:
-            count += 1
-            entries += str(await SP_GRPS.find_one({'_id': i['_id']}))+'\n\n'
-            await SP_GRPS.find_one_and_delete({'_id': i['_id']})
-        except fw:
-            await asyncio.sleep(fw.x + 5)
-    await asyncio.sleep(5)
-    await x.edit_text("Checking 8th collection!!!")
-    async for i in HD_GRPS.find():
-        await asyncio.sleep(2)
-        try:
-            await client.get_chat(i['_id'])
-        except cp:
-            count += 1
-            entries += str(await HD_GRPS.find_one({'_id': i['_id']}))+'\n\n'
-            await HD_GRPS.find_one_and_delete({'_id': i['_id']})
-        except ci:
-            count += 1
-            entries += str(await HD_GRPS.find_one({'_id': i['_id']}))+'\n\n'
-            await HD_GRPS.find_one_and_delete({'_id': i['_id']})
-        except pi:
-            count += 1
-            entries += str(await HD_GRPS.find_one({'_id': i['_id']}))+'\n\n'
-            await HD_GRPS.find_one_and_delete({'_id': i['_id']})
         except fw:
             await asyncio.sleep(fw.x + 5)
     await asyncio.sleep(5)
@@ -364,9 +270,22 @@ async def start_(client: anibot, message: Message, mdata: dict):
                 await logout_cmd(client, message)
                 return
             if deep_cmd.split("_")[0]=="des":
-                pic, result = await get_additional_info(deep_cmd.split("_")[2], "desc", deep_cmd.split("_")[1])
+                pic, result = await get_additional_info(deep_cmd.split("_")[2], deep_cmd.split("_")[3], deep_cmd.split("_")[1])
                 await client.send_photo(user, pic)
                 await client.send_message(user, result.replace("~!", "").replace("!~", ""))
+                return
+            if deep_cmd.split("_")[0]=="anime":
+                auth = False
+                if (await AUTH_USERS.find_one({"id": user})):
+                    auth = True
+                result = await get_anime({"id": int(deep_cmd.split("_")[1])}, user=user, auth=auth)
+                pic, msg = result[0], result[1]
+                buttons = get_btns("ANIME", result=result, user=user, auth=auth)
+                await client.send_photo(user, pic, caption=msg, reply_markup=buttons)
+                return
+            if deep_cmd.split("_")[0]=="anirec":
+                result = await get_recommendations(deep_cmd.split("_")[1])
+                await client.send_message(user, result, disable_web_page_preview=True)
                 return
             if deep_cmd.split("_", 1)[0]=="code":
                 if not os.environ.get('ANILIST_REDIRECT_URL'):

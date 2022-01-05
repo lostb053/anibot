@@ -10,6 +10,7 @@ from typing import Tuple, Optional
 from uuid import uuid4
 from pyrogram.errors import FloodWait, MessageNotModified
 from pyrogram.types import InlineKeyboardButton, CallbackQuery, Message, InlineKeyboardMarkup
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from .. import OWNER, DOWN_PATH, anibot, LOG_CHANNEL_ID, has_user
 from ..utils.db import get_collection
 
@@ -260,8 +261,8 @@ async def clog(name: str, text: str, tag: str):
 
 def get_btns(media, user: int, result: list, lsqry: str = None, lspage: int = None, auth: bool = False, sfw: str = "False"):
     buttons = []
-    qry = f"_{lsqry}" if lsqry  is not None else ""
-    pg = f"_{lspage}" if lspage  is not None else ""
+    qry = f"_{lsqry}" if lsqry is not None else ""
+    pg = f"_{lspage}" if lspage is not None else ""
     if media == "ANIME" and sfw == "False":
         buttons.append([
             InlineKeyboardButton(text="Characters", callback_data=f"char_{result[2][0]}_ANI{qry}{pg}_{str(auth)}_1_{user}"),
@@ -284,7 +285,7 @@ def get_btns(media, user: int, result: list, lsqry: str = None, lspage: int = No
     if media == "MANGA" and sfw == "False":
         buttons.append([InlineKeyboardButton("More Info", url=result[1][2])])
     if media == "AIRING" and sfw == "False":
-        buttons.append([InlineKeyboardButton("More Info", url=result[1])])
+        buttons.append([InlineKeyboardButton("More Info", url=result[1][0])])
     if auth is True and media!="SCHEDULED" and sfw == "False":
         auth_btns = get_auth_btns(media, user, result[2], lspage=lspage, lsqry=lsqry)
         buttons.append(auth_btns)
@@ -300,7 +301,7 @@ def get_btns(media, user: int, result: list, lsqry: str = None, lspage: int = No
                 ])
             else:
                 buttons.append([InlineKeyboardButton(text="Prequel", callback_data=f"btn_{result[3]}_{str(auth)}_{user}")])
-    if lsqry  is not None and len(result)!=1 and result[1][1]!=1:
+    if (lsqry is not None) and (len(result)!=1) and (result[1][1]!=1):
         if lspage == 1:
             buttons.append([InlineKeyboardButton(text="Next", callback_data=f"page_{media}{qry}_{int(lspage)+1}_{str(auth)}_{user}")])
         elif lspage == result[1][1]:
@@ -356,8 +357,12 @@ def season_(future: bool = False):
         return 'FALL', y
 
 
+#### Update Pics cache using @webpagebot ####
 m = datetime.now().month
-async def update_pics_cache(link):
+y = datetime.now().year
+ts = datetime(y, m, 1, 0, 0, 0, 0).timestamp()
+PIC_LS = []
+async def update_pics_cache():
     if not has_user:
         return
     k = await PIC_DB.find_one({'_id': 'month'})
@@ -366,12 +371,54 @@ async def update_pics_cache(link):
     elif m != k['m']:
         await PIC_DB.drop()
         await PIC_DB.insert_one({'_id': 'month', 'm': m})
-    if (await PIC_DB.find_one({'_id': link})) is None:
-        await PIC_DB.insert_one({'_id': link})
-        try:
-            await user.send_message("webpagebot", link)
-        except ConnectionError:
-            await asyncio.sleep(5)
-            await user.send_message("webpagebot", link)
-    else:
-        return
+    for link in PIC_LS:
+        if (await PIC_DB.find_one({'_id': link})) is None:
+            await PIC_DB.insert_one({'_id': link})
+            try:
+                me = await user.send_photo("me", link+f"?a={ts}")
+                msg = await user.send_photo("me", link)
+            except ConnectionError:
+                await asyncio.sleep(5)
+                me = await user.send_photo("me", link+f"?a={ts}")
+                msg = await user.send_photo("me", link)
+            await asyncio.sleep(7)
+            dls1 = await user.download_media(
+                msg.photo,
+                file_name=DOWN_PATH + link.split("/").pop()+'(1).png',
+            )
+            dls2 = await user.download_media(
+                me.photo,
+                file_name=DOWN_PATH + link.split("/").pop()+'(2).png',
+            )
+            await asyncio.sleep(10)
+            with open(dls1, 'rb') as p1:
+                b1 = p1.read()
+            with open(dls2, 'rb') as p2:
+                b2 = p2.read()
+            await user.delete_messages("me", [me.message_id, msg.message_id])
+            if b1!=b2:
+                try:
+                    await user.send_message("webpagebot", link)
+                except ConnectionError:
+                    await asyncio.sleep(5)
+                    await user.send_message("webpagebot", link)
+        else:
+            continue
+
+
+async def remove_useless_elements():
+    for i in PIC_LS:
+        if (await PIC_DB.find_one({'_id': i[0]})) is not None:
+            PIC_LS.remove(i)
+        else:
+            continue
+
+
+j1 = AsyncIOScheduler()
+j1.add_job(update_pics_cache, "interval", minutes=60)
+j1.start()
+
+
+j2 = AsyncIOScheduler()
+j2.add_job(remove_useless_elements, "interval", minutes=3)
+j2.start()

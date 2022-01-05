@@ -1,29 +1,48 @@
 import requests
 import time
+import os
 from bs4 import BeautifulSoup
+from .db import get_collection
+from .google_trans_new import google_translator
 from .helper import cflag, make_it_rw, pos_no, return_json_senpai, day_, season_
 from .. import BOT_NAME
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from jikanpy import AioJikan
 from datetime import datetime
 
-ANIME_DB, MANGA_DB, CHAR_DB = {}, {}, {}
+tr = google_translator()
+ANIME_DB, MANGA_DB, CHAR_DB, STUDIO_DB, AIRING_DB = {}, {}, {}, {}, {}
+GUI = get_collection('GROUP_UI')
+
+async def uidata(id_):
+    data = await GUI.find_one({'_id': str(id_)})
+    if data is not None:
+        return str(data['bl'])+" ", data['cs']
+    return ["➤ ", "UPPER"]
+
+async def get_ui_text(case):
+    if case=="UPPER":
+        return "SOURCE", "TYPE", "SCORE", "DURATION", "USER DATA", "ADULT RATED", "STATUS", "GENRES", "TAGS", "SEQUEL", "PREQUEL", "NEXT AIRING", "DESCRIPTION", "VOLUMES", "CHAPTERS"
+    else:
+        return "Source", "Type", "Score", "Duration", "User Data", "Adult Rated", "Status", "Genres", "Tags", "Sequel", "Prequel", "Next Airing", "Description", "Volumes", "Chapters"
+
 
 #### Anilist part ####
 
 ANIME_TEMPLATE = """{name}
 
 **ID | MAL ID:** `{idm}` | `{idmal}`
-➤ **SOURCE:** `{source}`
-➤ **TYPE:** `{formats}`{avscd}{dura}{user_data}
-➤ **ADULT RATED:** `{adult}`
+{bl}**{psrc}:** `{source}`
+{bl}**{ptype}:** `{formats}`{avscd}{dura}{user_data}
 {status_air}{gnrs_}{tags_}
 
 🎬 {trailer_link}
 📖 <a href="{surl}">Synopsis</a>
 📖 <a href="{url}">Official Site</a>
+<a href="https://t.me/{bot}?start=anirec_{idm}">Recommendations</a>
 
 {additional}"""
+
 
 # GraphQL Queries.
 ANIME_QUERY = """
@@ -168,7 +187,7 @@ query ($id: Int, $page: Int) {
 
 VIEWER_QRY = """
 query {
-  Viewer{
+  Viewer {
     id
     name
     siteUrl
@@ -277,24 +296,29 @@ mutation ($id: Int) {
 }"""
 
 AIR_QUERY = """
-query ($id: Int, $idMal:Int, $search: String) {
-  Media (id: $id, idMal: $idMal, search: $search, type: ANIME) {
-    id
-    title {
-      romaji
-      english
-    }
-    status
-    countryOfOrigin
-    nextAiringEpisode {
-      timeUntilAiring
-      episode
-    }
-    siteUrl
-    isFavourite
-    mediaListEntry {
-      status
+query ($search: String, $page: Int) {
+  Page (perPage: 1, page: $page) {
+    pageInfo {
+      total
+    } 
+    media (search: $search, type: ANIME) {
       id
+      title {
+        romaji
+        english
+      }
+      status
+      countryOfOrigin
+      nextAiringEpisode {
+        timeUntilAiring
+        episode
+      }
+      siteUrl
+      isFavourite
+      mediaListEntry {
+        status
+        id
+      }
     }
   }
 }
@@ -409,7 +433,7 @@ query ($search: String, $page: Int) {
 CHARACTER_QUERY = """
 query ($id: Int, $search: String, $page: Int) {
   Page (perPage: 1, page: $page) {
-    pageInfo{
+    pageInfo {
       total
     }
     characters (id: $id, search: $search) {
@@ -420,6 +444,22 @@ query ($id: Int, $search: String, $page: Int) {
       }
       image {
         large
+      }
+      media (type: ANIME) {
+        edges {
+          node {
+            title {
+              romaji
+            }
+            type
+          }
+          voiceActors (language: JAPANESE) {
+            name {
+              full
+         	  }
+            siteUrl
+          }
+        }
       }
       isFavourite
       siteUrl
@@ -465,7 +505,7 @@ query ($search: String, $page: Int) {
 
 DESC_INFO_QUERY = """
 query ($id: Int) {
-	Character (id: $id) {
+  Character (id: $id) {
     image {
       large
     }
@@ -476,7 +516,7 @@ query ($id: Int) {
 
 LS_INFO_QUERY = """
 query ($id: Int) {
-	Character (id: $id) {
+  Character (id: $id) {
     image {
       large
     }
@@ -577,6 +617,120 @@ query{
 }
 """
 
+RECOMMENDTIONS_QUERY = '''
+query ($id: Int) {
+  Media (id: $id) {
+    recommendations (perPage: 25) {
+      edges {
+        node {
+          mediaRecommendation {
+            title {
+              romaji
+            }
+            id
+            siteUrl
+          }
+        }
+      }
+    }
+  }
+}
+'''
+
+STUDIO_QUERY = '''
+query ($search: String, $page: Int) {
+  Page (page: $page, perPage: 1) {
+    pageInfo {
+      total
+    }
+  	studios (search: $search) {
+    	id
+    	name
+  	  siteUrl
+      isFavourite
+  	}
+	}
+}
+'''
+
+STUDIO_ANI_QUERY = '''
+query ($id: Int, $page: Int) {
+  Studio (id: $id) {
+    name
+    media (page: $page) {
+      pageInfo {
+        total
+        lastPage
+      }
+      edges {
+        node  {
+          title {
+            romaji
+          }
+        }
+      }
+    }
+  }
+}
+'''
+
+
+async def get_studios(qry, page, user, auth):
+    vars_ = {'search': STUDIO_DB[qry], 'page': int(page)}
+    result = await return_json_senpai(STUDIO_QUERY, vars_, auth, user)
+    if result["data"]['Page']['studios']==[]:
+        return f"Not Found"
+    data = result["data"]['Page']['studios'][0]
+    msg = f"**{data['name']}**{', ♥️' if data['isFavourite'] is True else ''}\n\n**ID:** {data['id']}\n[Website]({data['siteUrl']})"
+    btns = []
+    btns.append([InlineKeyboardButton("List Animes", callback_data=f"stuani_1_{data['id']}_{page}_{qry}_{user}")])
+    if auth:
+        btns.append([InlineKeyboardButton("Add To Favs", callback_data=f"tglstudio_{data['id']}_{user}")])
+    pi = result["data"]['Page']['pageInfo']['total']
+    if pi==1:
+        return msg, btns
+    if int(page)==1:
+        btns.append([InlineKeyboardButton("Next", callback_data=f"pgstudio_2_{qry}_{user}")])
+    elif int(page)==pi:
+        btns.append([InlineKeyboardButton("Prev", callback_data=f"pgstudio_{pi-1}_{qry}_{user}")])
+    else:
+        btns.append(
+            [
+                InlineKeyboardButton("Next", callback_data=f"pgstudio_{page+1}_{qry}_{user}"),
+                InlineKeyboardButton("Prev", callback_data=f"pgstudio_{page-1}_{qry}_{user}")
+            ]
+        )
+    return msg, btns
+
+
+async def get_studio_animes(id_, page, qry, rp, auth, user):
+    vars_ = {'id': id_, 'page': int(page)}
+    result = await return_json_senpai(STUDIO_ANI_QUERY, vars_, auth, user)
+    data = result['Studio']['media']['edges']
+    msg = "No results found"
+    if data!=[]:
+        msg = f"List of animes by **{result['Studio']['name']}** studio\n"
+        for i in data:
+            msg += f"\n⚬ `{data['node']['title']['romaji']}`"
+    btns = []
+    pi = result["data"]['Studio']['media']['pageInfo']
+    if pi['lastPage']==1:
+        btns.append([InlineKeyboardButton("Back", callback_data=f"pgstudio_{rp}_{qry}_{user}")])
+        return msg, btns
+    if int(page)==1:
+        btns.append([InlineKeyboardButton("Next", callback_data=f"stuani_2_{id_}_{rp}_{qry}_{user}")])
+    elif int(page)==pi['lastPage']:
+        btns.append([InlineKeyboardButton("Prev", callback_data=f"stuani_{int(page)-1}_{id_}_{rp}_{qry}_{user}")])
+    else:
+        btns.append(
+            [
+                InlineKeyboardButton("Next", callback_data=f"stuani_{int(page)+1}_{id_}_{rp}_{qry}_{user}"),
+                InlineKeyboardButton("Prev", callback_data=f"stuani_{int(page)-1}_{id_}_{rp}_{qry}_{user}")
+            ]
+        )
+    btns.append([InlineKeyboardButton("Back", callback_data=f"pgstudio_{rp}_{qry}_{user}")])
+    return msg, btns
+
 
 async def get_all_tags(text: str = None):
     vars_ = {}
@@ -624,6 +778,22 @@ async def get_user_activity(id_, user):
             pass
     btn = [[InlineKeyboardButton("Back", callback_data=f"getusrbc_{user}")]]
     return f"https://img.anili.st/user/{id_}?a={time.time()}", msg, InlineKeyboardMarkup(btn)
+
+
+async def get_recommendations(id_):
+    vars_ = {'id': int(id_)}
+    result = await return_json_senpai(RECOMMENDTIONS_QUERY, vars_)
+    data = result['data']['Media']['recommendations']['edges']
+    rc_ls = []
+    for i in data:
+        ii = i['node']['mediaRecommendation']
+        rc_ls.append([ii['title']['romaji'], ii['id'], ii['siteUrl']])
+    if rc_ls == []:
+        return "No Recommendations available related to given anime!!!"
+    outstr = "Recommended animes:\n\n"
+    for i in rc_ls:
+        outstr += f"**{i[0]}**\n ➥[Synopsis](https://t.me/{BOT_NAME.replace('@', '')}?start=anime_{i[1]})\n ➥[Official Site]({i[2]})\n\n"
+    return outstr
 
 
 async def get_top_animes(gnr: str, page, user):
@@ -738,6 +908,8 @@ async def get_additional_info(idm, req, ctgry, auth: bool = False, user: int = N
     pic = f"https://img.anili.st/media/{idm}"
     if req == "desc":
         synopsis = data.get("description")
+        if os.environ.get("PREFERRED_LANGUAGE"):
+            synopsis = tr.translate(synopsis, lang_tgt=os.environ.get("PREFERRED_LANGUAGE"))
         return (pic if ctgry == "ANI" else data["image"]["large"]), synopsis
     elif req == "char":
         charlist = []
@@ -754,7 +926,7 @@ async def get_additional_info(idm, req, ctgry, auth: bool = False, user: int = N
         return pic, ps
 
 
-async def get_anime(vars_, auth: bool = False, user: int = None):
+async def get_anime(vars_, auth: bool = False, user: int = None, cid: int = None):
     result = await return_json_senpai(ANIME_QUERY, vars_, auth=auth, user=user)
 
     error = result.get("errors")
@@ -784,15 +956,18 @@ async def get_anime(vars_, auth: bool = False, user: int = None):
     trailer_link = "N/A"
     gnrs = ", ".join(data['genres'])
     score = data['averageScore']
-    avscd = f"\n➤ **SCORE:** `{score}%` 🌟" if score is not None else ""
+    bl, cs = await uidata(cid)
+    text = await get_ui_text(cs)
+    psrc, ptype = text[0], text[1]
+    avscd = f"\n{bl}**{text[2]}:** `{score}%` 🌟" if score is not None else ""
     tags = []
     for i in data['tags']:
         tags.append(i["name"])
-    tags_ = f"\n➤ **TAGS:** `{', '.join(tags[:5])}`" if tags != [] else ""
+    tags_ = f"\n{bl}**{text[8]}:** `{', '.join(tags[:5])}`" if tags != [] else ""
     bot = BOT_NAME.replace("@", "")
     gnrs_ = ""
     if len(gnrs)!=0:
-        gnrs_ = f"\n➤ **GENRES:** `{gnrs}`"
+        gnrs_ = f"\n{bl}**{text[7]}:** `{gnrs}`"
     isfav = data.get("isFavourite")
     fav = ", in Favourites" if isfav is True else ""
     user_data = ""
@@ -805,7 +980,7 @@ async def get_anime(vars_, auth: bool = False, user: int = None):
             in_ls_id = in_list['id']
             in_ls_stts = in_list['status']
             in_ls_score = f" and scored {in_list['score']}" if in_list['score']!=0 else ""
-            user_data = f"\n➤ **USER DATA:** `{in_ls_stts}{fav}{in_ls_score}`"
+            user_data = f"\n{bl}**{text[4]}:** `{in_ls_stts}{fav}{in_ls_score}`"
     if data["title"]["english"] is not None:
         name = f"""[{c_flag}]**{romaji}**
         __{english}__
@@ -821,7 +996,7 @@ async def get_anime(vars_, auth: bool = False, user: int = None):
                 if i["node"]["title"]["english"] is not None
                 else i["node"]["title"]["romaji"]
             )
-            prql += f"**PREQUEL:** `{pname}`\n"
+            prql += f"**{text[10]}:** `{pname}`\n"
             prql_id = i["node"]["id"]
             break
     for i in prqlsql:
@@ -831,13 +1006,13 @@ async def get_anime(vars_, auth: bool = False, user: int = None):
                 if i["node"]["title"]["english"] is not None
                 else i["node"]["title"]["romaji"]
             )
-            sql += f"**SEQUEL:** `{sname}`\n"
+            sql += f"**{text[9]}:** `{sname}`\n"
             sql_id = i["node"]["id"]
             break
     additional = f"{prql}{sql}"
     surl = f"https://t.me/{bot}/?start=des_ANI_{idm}"
     dura = (
-        f"\n➤ **DURATION:** `{duration} min/ep`"
+        f"\n{bl}**{text[3]}:** `{duration} min/ep`"
         if duration is not None
         else ""
     )
@@ -850,9 +1025,9 @@ async def get_anime(vars_, auth: bool = False, user: int = None):
         air_on += f" | {eps}{th} eps"
     if air_on  is None:
         eps_ = f"` | `{episodes} eps" if episodes is not None else ""
-        status_air = f"➤ **STATUS:** `{status}{eps_}`"
+        status_air = f"{bl}**{text[6]}:** `{status}{eps_}`"
     else:
-        status_air = f"➤ **STATUS:** `{status}`\n➤ **NEXT AIRING:** `{air_on}`"
+        status_air = f"{bl}**{text[6]}:** `{status}`\n{bl}**{text[11]}:** `{air_on}`"
     if data["trailer"] and data["trailer"]["site"] == "youtube":
         trailer_link = f"<a href='https://youtu.be/{data['trailer']['id']}'>Trailer</a>"
     title_img = f"https://img.anili.st/media/{idm}"
@@ -863,7 +1038,7 @@ async def get_anime(vars_, auth: bool = False, user: int = None):
     return title_img, finals_, [idm, in_ls, in_ls_id, isfav, str(adult)], prql_id, sql_id
 
 
-async def get_anilist(qdb, page, auth: bool = False, user: int = None):
+async def get_anilist(qdb, page, auth: bool = False, user: int = None, cid: int = None):
     vars_ = {"search": ANIME_DB[qdb], "page": page}
     result = await return_json_senpai(PAGE_QUERY, vars_, auth=auth, user=user)
 
@@ -892,15 +1067,18 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
     isfav = data.get("isFavourite")
     gnrs = ", ".join(data['genres'])
     gnrs_ = ""
+    bl, cs = await uidata(cid)
+    text = await get_ui_text(cs)
+    psrc, ptype = text[0], text[1]
     if len(gnrs)!=0:
-        gnrs_ = f"\n➤ **GENRES:** `{gnrs}`"
+        gnrs_ = f"\n{bl}**{text[7]}:** `{gnrs}`"
     fav = ", in Favourites" if isfav is True else ""
     score = data['averageScore']
-    avscd = f"\n➤ **SCORE:** `{score}%` 🌟" if score is not None else ""
+    avscd = f"\n{bl}**{text[2]}:** `{score}%` 🌟" if score is not None else ""
     tags = []
     for i in data['tags']:
         tags.append(i["name"])
-    tags_ = f"\n➤ **TAGS:** `{', '.join(tags[:5])}`" if tags != [] else ""
+    tags_ = f"\n{bl}**{text[8]}:** `{', '.join(tags[:5])}`" if tags != [] else ""
     in_ls = False
     in_ls_id = ""
     user_data = ""
@@ -911,7 +1089,7 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
             in_ls_id = in_list['id']
             in_ls_stts = in_list['status']
             in_ls_score = f" and scored {in_list['score']}" if in_list['score']!=0 else ""
-            user_data = f"\n➤ **USER DATA:** `{in_ls_stts}{fav}{in_ls_score}`"
+            user_data = f"\n{bl}**{text[4]}:** `{in_ls_stts}{fav}{in_ls_score}`"
     if data["title"]["english"] is not None:
         name = f"[{c_flag}]**{english}** (`{native}`)"
     else:
@@ -924,7 +1102,7 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
                 if i["node"]["title"]["english"] is not None
                 else i["node"]["title"]["romaji"]
             )
-            prql += f"**PREQUEL:** `{pname}`\n"
+            prql += f"**{text[10]}:** `{pname}`\n"
             break
     for i in prqlsql:
         if i["relationType"] == "SEQUEL":
@@ -933,12 +1111,12 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
                 if i["node"]["title"]["english"] is not None
                 else i["node"]["title"]["romaji"]
             )
-            sql += f"**SEQUEL:** `{sname}`\n"
+            sql += f"**{text[9]}:** `{sname}`\n"
             break
     additional = f"{prql}{sql}"
     additional.replace("-", "")
     dura = (
-        f"\n➤ **DURATION:** `{duration} min/ep`"
+        f"\n{bl}**{text[3]}:** `{duration} min/ep`"
         if duration is not None
         else ""
     )
@@ -951,9 +1129,9 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None):
         air_on += f" | {eps}{th} eps"
     if air_on  is None:
         eps_ = f"` | `{episodes} eps" if episodes is not None else ""
-        status_air = f"➤ **STATUS:** `{status}{eps_}`"
+        status_air = f"{bl}**{text[6]}:** `{status}{eps_}`"
     else:
-        status_air = f"➤ **STATUS:** `{status}`\n➤ **NEXT AIRING:** `{air_on}`"
+        status_air = f"{bl}**{text[6]}:** `{status}`\n{bl}**{text[11]}:** `{air_on}`"
     if data["trailer"] and data["trailer"]["site"] == "youtube":
         trailer_link = f"<a href='https://youtu.be/{data['trailer']['id']}'>Trailer</a>"
     url = data.get("siteUrl")
@@ -980,11 +1158,20 @@ async def get_character(query, page, auth: bool = False, user: int = None):
     img = data["image"]["large"]
     site_url = data["siteUrl"]
     isfav = data.get("isFavourite")
+    va = []
+    for i in data['media']['edges']:
+        for ii in i['voiceActors']:
+            if f"[{ii['name']['full']}]({ii['siteUrl']})" not in va:
+                va.append(f"[{ii['name']['full']}]({ii['siteUrl']})")
+    lva = None
+    if len(va)>1:
+        lva = va.pop()
+    sva = f"\n**Voice Actors:** {', '.join(va)}{' and '+lva if lva is not None else ''}\n" if va!= [] else ""
     cap_text = f"""
 __{native}__
 (`{name}`)
 **ID:** {id_}
-
+{sva}
 <a href='{site_url}'>Visit Website</a>"""
     total = result["data"]["Page"]["pageInfo"]["total"]
     return img, [cap_text, total], [id_, isfav]
@@ -1008,7 +1195,7 @@ async def browse_(qry: str):
     return out + "\n".join(ls[:20])
 
 
-async def get_manga(qdb, page, auth: bool = False, user: int = None):
+async def get_manga(qdb, page, auth: bool = False, user: int = None, cid: int = None):
     vars_ = {"search": MANGA_DB[qdb], "asHtml": True, "page": page}
     result = await return_json_senpai(MANGA_QUERY, vars_, auth=auth, user=user)
     if len(result['data']['Page']['media'])==0:
@@ -1039,6 +1226,8 @@ async def get_manga(qdb, page, auth: bool = False, user: int = None):
     fav = ", in Favourites" if isfav is True else ""
     in_ls = False
     in_ls_id = ""
+    bl, cs = await uidata(cid)
+    text = await get_ui_text(cs)
     user_data = ""
     if auth is True:
         in_list = data.get("mediaListEntry")
@@ -1047,7 +1236,7 @@ async def get_manga(qdb, page, auth: bool = False, user: int = None):
             in_ls_id = in_list['id']
             in_ls_stts = in_list['status']
             in_ls_score = f" and scored {in_list['score']}" if in_list['score']!=0 else ""
-            user_data = f"➤ **USER DATA:** `{in_ls_stts}{fav}{in_ls_score}`\n"
+            user_data = f"{bl}**{text[4]}:** `{in_ls_stts}{fav}{in_ls_score}`\n"
     name = f"""[{c_flag}]**{romaji}**
         __{english}__
         {native}"""
@@ -1055,26 +1244,27 @@ async def get_manga(qdb, page, auth: bool = False, user: int = None):
         name = f"""[{c_flag}]**{romaji}**
         {native}"""
     finals_ = f"{name}\n\n"
-    finals_ += f"➤ **ID:** `{idm}`\n"
-    finals_ += f"➤ **STATUS:** `{status}`\n"
-    finals_ += f"➤ **VOLUMES:** `{volumes}`\n"
-    finals_ += f"➤ **CHAPTERS:** `{chapters}`\n"
-    finals_ += f"➤ **SCORE:** `{score}`\n"
-    finals_ += f"➤ **FORMAT:** `{format_}`\n"
-    finals_ += f"➤ **SOURCE:** `{source}`\n"
+    finals_ += f"{bl}**ID:** `{idm}`\n"
+    finals_ += f"{bl}**{text[6]}:** `{status}`\n"
+    finals_ += f"{bl}**{text[13]}:** `{volumes}`\n"
+    finals_ += f"{bl}**{text[14]}:** `{chapters}`\n"
+    finals_ += f"{bl}**{text[2]}:** `{score}`\n"
+    finals_ += f"{bl}**{text[1]}:** `{format_}`\n"
+    finals_ += f"{bl}**{text[0]}:** `{source}`\n"
     finals_ += user_data
-    finals_ += f"\nDescription: `{description}`\n\n"
+    finals_ += f"\n{text[12]}: `{description}`\n\n"
     pic = f"https://img.anili.st/media/{idm}"
     return pic, [finals_, result["data"]["Page"]["pageInfo"]["total"], url], [idm, in_ls, in_ls_id, isfav, str(adult)]
 
 
-async def get_airing(vars_, auth: bool = False, user: int = None):
+async def get_airing(qry, ind: int, auth: bool = False, user: int = None):
+    vars_ = {"search": AIRING_DB[qry], "page": int(ind)}
     result = await return_json_senpai(AIR_QUERY, vars_, auth=auth, user=user)
     error = result.get("errors")
     if error:
         error_sts = error[0].get("message")
         return [f"{error_sts}"]
-    data = result["data"]["Media"]
+    data = result["data"]["Page"]["media"][0]
     # Airing Details
     mid = data.get("id")
     romaji = data["title"]["romaji"]
@@ -1108,7 +1298,7 @@ async def get_airing(vars_, auth: bool = False, user: int = None):
     if air_on:
         out += f"Airing Episode `{episode}{th}` in `{air_on}`"
     site = data["siteUrl"]
-    return [coverImg, out], site, [mid, in_ls, in_ls_id, isfav]
+    return [coverImg, out], [site, result["data"]["Page"]["pageInfo"]["total"]], [mid, in_ls, in_ls_id, isfav]
 
 
 async def toggle_favourites(id_: int, media: str, user: int):

@@ -1,6 +1,6 @@
 import asyncio
 from pyrogram import idle
-from . import anibot, has_user
+from . import anibot, has_user, session
 from .utils.db import _close_db
 
 user = None
@@ -16,5 +16,6 @@ async def main():
     if user is not None:
         await user.stop()
     _close_db()
+    await session.close()
 
 asyncio.get_event_loop().run_until_complete(main())
