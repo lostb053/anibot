@@ -1211,6 +1211,7 @@ async def get_manga(qdb, page, auth: bool = False, user: int = None, cid: int = 
     status = data.get("status")
     synopsis = data.get("description")
     description = synopsis[:500]
+    description_s = ""
     if len(synopsis) > 500:
         description += f"..."
         description_s = f"[For more info click here](https://t.me/{BOT_NAME.replace('@', '')}/?start=des_ANI_{idm}_desc)"
