@@ -1010,7 +1010,7 @@ async def get_anime(vars_, auth: bool = False, user: int = None, cid: int = None
             sql_id = i["node"]["id"]
             break
     additional = f"{prql}{sql}"
-    surl = f"https://t.me/{bot}/?start=des_ANI_{idm}"
+    surl = f"https://t.me/{bot}/?start=des_ANI_{idm}_desc"
     dura = (
         f"\n{bl}**{text[3]}:** `{duration} min/ep`"
         if duration is not None
@@ -1136,7 +1136,7 @@ async def get_anilist(qdb, page, auth: bool = False, user: int = None, cid: int 
         trailer_link = f"<a href='https://youtu.be/{data['trailer']['id']}'>Trailer</a>"
     url = data.get("siteUrl")
     title_img = f"https://img.anili.st/media/{idm}"
-    surl = f"https://t.me/{bot}/?start=des_ANI_{idm}"
+    surl = f"https://t.me/{bot}/?start=des_ANI_{idm}_desc"
     total = result["data"]["Page"]["pageInfo"]["total"]
     try:
         finals_ = ANIME_TEMPLATE.format(**locals())
@@ -1212,7 +1212,8 @@ async def get_manga(qdb, page, auth: bool = False, user: int = None, cid: int = 
     synopsis = data.get("description")
     description = synopsis[:500]
     if len(synopsis) > 500:
-        description += f"...`\n\n[For more info click here](https://t.me/{BOT_NAME.replace('@', '')}/?start=des_ANI_{idm}_desc)`"
+        description += f"..."
+        description_s = f"[For more info click here](https://t.me/{BOT_NAME.replace('@', '')}/?start=des_ANI_{idm}_desc)"
     volumes = data.get("volumes")
     chapters = data.get("chapters")
     score = data.get("averageScore")
@@ -1254,7 +1255,7 @@ async def get_manga(qdb, page, auth: bool = False, user: int = None, cid: int = 
     finals_ += user_data
     if os.environ.get("PREFERRED_LANGUAGE"):
         description = tr.translate(description, lang_tgt=os.environ.get("PREFERRED_LANGUAGE"))
-    finals_ += f"\n**{text[12]}**: `{description}`\n\n"
+    finals_ += f"\n**{text[12]}**: `{description}`\n\n{description_s}"
     pic = f"https://img.anili.st/media/{idm}"
     return pic, [finals_, result["data"]["Page"]["pageInfo"]["total"], url], [idm, in_ls, in_ls_id, isfav, str(adult)]
 
