@@ -18,4 +18,6 @@ async def main():
     _close_db()
     await session.close()
 
-asyncio.get_event_loop().run_until_complete(main())
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+loop.run_until_complete(main())
