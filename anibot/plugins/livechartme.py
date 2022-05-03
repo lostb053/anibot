@@ -1,7 +1,7 @@
 import requests
 import re
 import asyncio
-import traceback
+from traceback import format_exc as err
 from bs4 import BeautifulSoup as bs
 from collections import defaultdict
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -31,16 +31,16 @@ async def livechart_parser():
     dc = bs(requests.get(url_c).text, features='xml')
     dd = bs(requests.get(url_d).text, features='xml')
     if (await A.find_one()) is None:
-        await A.insert_one({'_id': str(da.find('item').find('title'))})
+        await A.insert_one({'_id': str(da.find('item').find('title')), 'guid': str(da.find('item').find('guid'))})
         return
     if (await B.find_one()) is None:
-        await B.insert_one({'_id': str(db.find('item').find('title'))})
+        await B.insert_one({'_id': str(db.find('item').find('title')), 'guid': str(db.find('item').find('guid'))})
         return
     if (await C.find_one()) is None:
         await C.insert_one({'_id': str(dc.find('item').find('title'))})
         return
     if (await D.find_one()) is None:
-        await D.insert_one({'_id': str(dd.find('item').find('title'))})
+        await D.insert_one({'_id': str(dd.find('item').find('title')), 'guid': str(dd.find('item').find('guid'))})
         return
     msgslc = []
     msgscr = []
@@ -58,6 +58,8 @@ async def livechart_parser():
         if (await A.find_one())['_id'] == str(i.find('title')):
             break
         lc.append([str(i.find('title')).split(' #'), re.sub(r'<.*?>(.*)<.*?>', r'\1', str(i.find('guid')))])
+        if (await A.find_one())['guid'] == str(i.find('guid')):
+            break
     for i in lc:
         if len(i[0])==2:
             clc[i[0][0]].append([i[0][1], i[1]])
@@ -81,6 +83,8 @@ async def livechart_parser():
         if (await B.find_one())['_id'] == str(i.find('title')):
             break
         cr.append([str(i.find('title')).split(' - '), re.sub(r'<.*?>(.*)<.*?>', r'\1', str(i.find('guid')))])
+        if (await B.find_one())['guid'] == str(i.find('guid')):
+            break
     for i in cr:
         if len(i[0])==3:
             clc[i[0][0].split('(')[0]].append([i[0][1], i[0][2], i[1]])
@@ -138,22 +142,20 @@ async def livechart_parser():
 
 
     print('Notifying Livachart.me airings!!!')
-    if await AR_GRPS.find_one() is not None:
-        for i in msgslc:
+    for i in msgslc:
+        if await AR_GRPS.find_one() is not None:
             async for id_ in AR_GRPS.find():
                 btn = InlineKeyboardMarkup([[InlineKeyboardButton("More Info", url=i[1])]])
                 try:
                     await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
                     await asyncio.sleep(1.5)
+                    if len(msgslc)!=0:
+                        await A.drop()
+                        await A.insert_one({'_id': str(da.find('item').find('title')), 'guid': str(da.find('item').find('guid'))})
                 except Exception:
-                    e = traceback.print_exc()
+                    e = err()
                     await clog("ANIBOT", e, "AIRING")
-    if len(msgslc)!=0:
-        await A.drop()
-        await A.insert_one({'_id': str(da.find('item').find('title'))})
     await asyncio.sleep(10)
-
-
     print('Notifying Crunchyroll releases!!!')
     if await CR_GRPS.find_one() is not None:
         for i in msgscr:
@@ -162,15 +164,13 @@ async def livechart_parser():
                 try:
                     await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
                     await asyncio.sleep(1.5)
+                    if len(msgscr)!=0:
+                        await B.drop()
+                        await B.insert_one({'_id': str(db.find('item').find('title')), 'guid': str(db.find('item').find('guid'))})
                 except Exception:
-                    e = traceback.print_exc()
+                    e = err()
                     await clog("ANIBOT", e, "CRUNCHYROLL")
-    if len(msgscr)!=0:
-        await B.drop()
-        await B.insert_one({'_id': str(db.find('item').find('title'))})
     await asyncio.sleep(10)
-
-
     print('Notifying Subsplease releases!!!')
     if await SP_GRPS.find_one() is not None:
         for i in msgssp:
@@ -180,11 +180,9 @@ async def livechart_parser():
                     await anibot.send_message(id_['_id'], i[0], reply_markup=btn)
                     await asyncio.sleep(1.5)
                 except Exception:
-                    e = traceback.print_exc()
+                    e = err()
                     await clog("ANIBOT", e, "SUBSPLEASE")
     await asyncio.sleep(10)    
-
-    
     print('Notifying Headlines!!!')
     if await HD_GRPS.find_one() is not None:
         for i in msgslch:
@@ -196,12 +194,12 @@ async def livechart_parser():
                 try:
                     await anibot.send_photo(id_['_id'], i[0], caption=i[1], reply_markup=btn)
                     await asyncio.sleep(1.5)
+                    if len(msgslch)!=0:
+                        await D.drop()
+                        await D.insert_one({'_id': str(dd.find('item').find('title')), 'guid': str(dd.find('item').find('guid'))})
                 except Exception:
-                    e = traceback.print_exc()
+                    e = err()
                     await clog("ANIBOT", e, "HEADLINES")
-    if len(msgslch)!=0:
-        await D.drop()
-        await D.insert_one({'_id': str(dd.find('item').find('title')), 'guid': str(dd.find('item').find('guid'))})
 
 scheduler = AsyncIOScheduler()
 scheduler.add_job(livechart_parser, "interval", minutes=4)
