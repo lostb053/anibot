@@ -1429,7 +1429,7 @@ async def get_scheduled(day_id: int = 0):
 	day_inc = timestamp_today(day_id + 1)
 	variables = {'page': 1, 'gt': that_day, 'lt': day_inc}
 	result = await return_json_senpai(SCHEDULE_QUERY, variables, auth=False, user=None)
-	today = datetime.now(pytz.timezone("Asia/Kolkata"))
+	today = datetime.now(pytz.timezone("Asia/Tokyo"))
 	schedule_data =  result["data"]['Page'].get("airingSchedules")
 	if not schedule_data:
 		return f"No more data"
