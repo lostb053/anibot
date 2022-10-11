@@ -1,10 +1,11 @@
 import json
+import pytz
 import requests
 import asyncio
 import os
 import shlex
 from time import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from os.path import basename
 from typing import Tuple, Optional
 from uuid import uuid4
@@ -253,6 +254,11 @@ def make_it_rw(time_stamp):
     )
     return tmp[:-2]
 
+def timestamp_today(inc=0):
+	dt = datetime.now(pytz.timezone("Asia/Kolkata"))
+	dt = dt.replace(hour=0, minute=0, second=0, microsecond=0)
+	dt = dt + timedelta(days=inc)
+	return int(dt.timestamp())
 
 async def clog(name: str, text: str, tag: str):
     log = f"#{name.upper()}  #{tag.upper()}\n\n{text}"
@@ -273,15 +279,11 @@ def get_btns(media, user: int, result: list, lsqry: str = None, lspage: int = No
         buttons.append([InlineKeyboardButton("Description", callback_data=f"desc_{result[2][0]}_CHAR{qry}{pg}_{str(auth)}_{user}")])
         buttons.append([InlineKeyboardButton("List Series", callback_data=f"lsc_{result[2][0]}{qry}{pg}_{str(auth)}_{user}")])
     if media == "SCHEDULED":
-        if result[0]!=0 and result[0]!=6:
-            buttons.append([
-                InlineKeyboardButton(str(day_(result[0]-1)), callback_data=f"sched_{result[0]-1}_{user}"),
-                InlineKeyboardButton(str(day_(result[0]+1)), callback_data=f"sched_{result[0]+1}_{user}")
-            ])
-        if result[0] == 0:
-            buttons.append([InlineKeyboardButton(str(day_(result[0]+1)), callback_data=f"sched_{result[0]+1}_{user}")])
-        if result[0] == 6:
-            buttons.append([InlineKeyboardButton(str(day_(result[0]-1)), callback_data=f"sched_{result[0]-1}_{user}")])
+        get_day_name = lambda day_id: datetime.fromtimestamp(timestamp_today(day_id)).strftime("%A")
+        buttons.append([
+            InlineKeyboardButton(get_day_name(int(result[0])-1), callback_data=f"sched_{int(result[0])-1}_{user}"),
+            InlineKeyboardButton(get_day_name(int(result[0])+1), callback_data=f"sched_{int(result[0])+1}_{user}")
+        ])
     if media == "MANGA" and sfw == "False":
         buttons.append([InlineKeyboardButton("More Info", url=result[1][2])])
     if media == "AIRING" and sfw == "False":
@@ -328,15 +330,6 @@ def get_auth_btns(media, user, data, lsqry: str = None, lspage: int = None):
             ))
     return btn
 
-
-def day_(x: int):
-    if x == 0: return "Monday"
-    if x == 1: return "Tuesday"
-    if x == 2: return "Wednesday"
-    if x == 3: return "Thursday"
-    if x == 4: return "Friday"
-    if x == 5: return "Saturday"
-    if x == 6: return "Sunday"
 
 
 def season_(future: bool = False):

@@ -8,7 +8,6 @@ lottie
 bs4
 motor
 dnspython
-jikanpy
 natsort
 apscheduler
 lxml
