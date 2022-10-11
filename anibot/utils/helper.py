@@ -255,7 +255,7 @@ def make_it_rw(time_stamp):
     return tmp[:-2]
 
 def timestamp_today(inc=0):
-	dt = datetime.now(pytz.timezone("Asia/Kolkata"))
+	dt = datetime.now(pytz.timezone("Asia/Tokyo"))
 	dt = dt.replace(hour=0, minute=0, second=0, microsecond=0)
 	dt = dt + timedelta(days=inc)
 	return int(dt.timestamp())
