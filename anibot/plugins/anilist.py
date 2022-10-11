@@ -17,7 +17,7 @@ from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMa
 from pyrogram.errors import UserNotParticipant
 from .. import ANILIST_CLIENT, ANILIST_REDIRECT_URL, ANILIST_SECRET, OWNER, TRIGGERS as trg, BOT_NAME, anibot
 from ..utils.data_parser import (
-    get_all_genres, get_all_tags, get_top_animes, get_user_activity, get_user_favourites, toggle_favourites,
+    get_all_genres, get_all_tags, get_scheduled, get_top_animes, get_user_activity, get_user_favourites, toggle_favourites,
     get_anime, get_airing, get_anilist, get_character, get_additional_info, get_manga, browse_,
     get_featured_in_lists, update_anilist, get_user, ANIME_DB, MANGA_DB, CHAR_DB, AIRING_DB, GUI
 )
@@ -300,6 +300,28 @@ async def airing_cmd(client: Client, message: Message, mdata: dict):
     if update:
         PIC_LS.append(coverImg)
 
+@anibot.on_message(filters.command(["schedule", f"schedule{BOT_NAME}"], prefixes=trg))
+@control_user
+async def get_schuled(client: anibot, message: Message, mdata: dict):
+    """Get List of Scheduled Anime"""
+    gid = mdata['chat']['id']
+    find_gc = await DC.find_one({'_id': gid})
+    if find_gc is not None and 'schedule' in find_gc['cmd_list'].split():
+        return
+    x = await client.send_message(gid, "<code>Fetching Scheduled Animes</code>")
+    user = mdata['from_user']['id']
+    msg = await get_scheduled()
+    buttons = get_btns("SCHEDULED", result=[0], user=user)
+    await x.edit_text(msg, reply_markup=buttons)
+
+
+@anibot.on_callback_query(filters.regex(pattern=r"sched_(.*)"))
+@check_user
+async def ns_(client: anibot, cq: CallbackQuery, cdata: dict):
+    kek, day, user = cdata['data'].split("_")
+    msg = await get_scheduled(int(day))
+    buttons = get_btns("SCHEDULED", result=[int(day)], user=user)
+    await cq.edit_message_text(msg, reply_markup=buttons)
 
 @anibot.on_message(filters.command(["auth", f"auth{BOT_NAME}"], prefixes=trg))
 @control_user

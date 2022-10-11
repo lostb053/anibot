@@ -1,13 +1,13 @@
+import pytz
 import requests
 import time
 import os
 from bs4 import BeautifulSoup
 from .db import get_collection
 from .google_trans_new import google_translator
-from .helper import cflag, make_it_rw, pos_no, return_json_senpai, day_, season_
+from .helper import cflag, make_it_rw, pos_no, return_json_senpai, season_, timestamp_today
 from .. import BOT_NAME
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from jikanpy import AioJikan
 from datetime import datetime
 
 tr = google_translator()
@@ -673,7 +673,44 @@ query ($id: Int, $page: Int) {
   }
 }
 '''
-
+SCHEDULE_QUERY = """
+query ($page: Int, $gt: Int, $lt: Int) {
+  Page(page: $page, perPage: 100) {
+    pageInfo {
+      total
+      currentPage
+      hasNextPage
+    }
+    airingSchedules(airingAt_greater: $gt, airingAt_lesser: $lt) {
+      id
+      airingAt
+      timeUntilAiring
+      episode
+      mediaId
+      media {
+        id
+        title {
+          romaji
+          english
+          native
+        }
+        countryOfOrigin
+        duration
+        coverImage {
+          extraLarge
+        }
+        nextAiringEpisode {
+          airingAt
+          timeUntilAiring
+          episode
+        }
+        bannerImage
+        averageScore
+        siteUrl
+      }
+    }
+  }
+}"""
 
 async def get_studios(qry, page, user, auth):
     vars_ = {'search': STUDIO_DB[qry], 'page': int(page)}
@@ -1383,16 +1420,36 @@ async def check_if_adult(id_):
 
 ####       END        ####
 
-#### Jikanpy part ####
+#### RIP Jikanpy ####
 
-async def get_scheduled(x: int = 9):
-    day = str(day_(x if x!=9 else datetime.now().weekday())).lower()
-    out = f"Scheduled animes for {day.capitalize()}\n\n"
-    async with AioJikan() as session:
-        sched_ls = (await session.schedule(day=day)).get(day)
-        for i in sched_ls:
-            out += f"• `{i['title']}`\n"
-    return out, x if x!=9 else datetime.now().weekday()
+
+async def get_scheduled(day_id: int = 0):
+	# variables = {'page': 1, 'gt': timestamp_today(), 'lt': timestamp_today(1)}
+	that_day = timestamp_today(day_id)
+	day_inc = timestamp_today(day_id + 1)
+	variables = {'page': 1, 'gt': that_day, 'lt': day_inc}
+	result = await return_json_senpai(SCHEDULE_QUERY, variables, auth=False, user=None)
+	today = datetime.now(pytz.timezone("Asia/Kolkata"))
+	schedule_data =  result["data"]['Page'].get("airingSchedules")
+	if not schedule_data:
+		return f"No more data"
+	msg = f"**Schedule for {datetime.fromtimestamp(that_day).strftime('%A')}**\n`{datetime.fromtimestamp(that_day).strftime('%d %B, %Y')}`\n\n"
+	for anime_data in schedule_data:
+		if anime_data.get("media", {}).get("countryOfOrigin") != "JP":
+			continue
+		if today.timestamp() > anime_data['airingAt']:
+			msg += "● "
+		else:
+			msg += "○ "
+		msg += f"`{datetime.fromtimestamp(anime_data['airingAt']).strftime('%H:%M')}` "
+		anime_title = anime_data.get('media', {}).get("title", {}).get('romaji')
+		anime_id = anime_data.get('media', {}).get("id")
+		deeplink = f"https://t.me/{BOT_NAME.replace('@', '')}/?start=anime_{anime_id}"
+		if len(anime_title) > 30:
+			msg += f"[{anime_title[:26]}]({deeplink})...</a>\n"
+		else:
+			msg += f"[{anime_title}]({deeplink})\n"
+	return msg
 
 ####     END      ####
 
