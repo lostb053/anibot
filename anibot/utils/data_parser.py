@@ -756,7 +756,7 @@ query ($id: Int, $page: Int) {
 
 async def get_studios(qry, page, user, duser = None, auth: bool = False):
     page = int(page)
-    vars_ = {'search': STUDIO_DB[qry], 'page': int(page)}
+    vars_ = {'search': STUDIO_DB[qry], 'page': page}
     result = await return_json_senpai(STUDIO_QUERY, vars_, auth, user)
     if result["data"]['Page']['studios']==[]:
         return ["Not Found"]
@@ -768,13 +768,15 @@ async def get_studios(qry, page, user, duser = None, auth: bool = False):
     )
     if not duser:
         duser = user
-    btns = []
-    btns.append([
-        InlineKeyboardButton(
-            "List Animes",
-            callback_data=f"stuani_1_{data['id']}_{page}_{qry}_{auth}_{duser}"
-        )
-    ])
+    btns = [
+        [
+            InlineKeyboardButton(
+                "List Animes",
+                callback_data=f"stuani_1_{data['id']}_{page}_{qry}_{auth}_{duser}",
+            )
+        ]
+    ]
+
     if auth:
         btns.append([
             InlineKeyboardButton(
@@ -784,7 +786,7 @@ async def get_studios(qry, page, user, duser = None, auth: bool = False):
         ])
     pi = result["data"]['Page']['pageInfo']['hasNextPage']
     if pi is False:
-        if int(page)==1:
+        if page == 1:
             return msg, btns
         else:
             btns.append([
@@ -793,24 +795,23 @@ async def get_studios(qry, page, user, duser = None, auth: bool = False):
                     callback_data=f"pgstudio_{page-1}_{qry}_{auth}_{duser}"
                 )
             ])
-    else:
-        if int(page)==1:
-            btns.append([
-                InlineKeyboardButton(
-                    "Next", callback_data=f"pgstudio_2_{qry}_{auth}_{duser}"
-                )
-            ])
-        else:
-            btns.append(
-                [
-                    InlineKeyboardButton(
-                        "Prev", callback_data=f"pgstudio_{page-1}_{qry}_{auth}_{duser}"
-                    ),
-                    InlineKeyboardButton(
-                        "Next", callback_data=f"pgstudio_{page+1}_{qry}_{auth}_{duser}"
-                    )
-                ]
+    elif page == 1:
+        btns.append([
+            InlineKeyboardButton(
+                "Next", callback_data=f"pgstudio_2_{qry}_{auth}_{duser}"
             )
+        ])
+    else:
+        btns.append(
+            [
+                InlineKeyboardButton(
+                    "Prev", callback_data=f"pgstudio_{page-1}_{qry}_{auth}_{duser}"
+                ),
+                InlineKeyboardButton(
+                    "Next", callback_data=f"pgstudio_{page+1}_{qry}_{auth}_{duser}"
+                )
+            ]
+        )
     return msg, InlineKeyboardMarkup(btns)
 
 
@@ -845,24 +846,23 @@ async def get_studio_animes(id_, page, qry, rp, user, duser = None, auth: bool =
                     callback_data=f"stuani_{int(page)-1}_{id_}_{rp}_{qry}_{auth}_{duser}"
                 )
             ])
+    elif int(page)==1:
+        btns.append([
+            InlineKeyboardButton(
+                "Next", callback_data=f"stuani_2_{id_}_{rp}_{qry}_{auth}_{duser}"
+            )
+        ])
     else:
-        if int(page)==1:
-            btns.append([
-                InlineKeyboardButton(
-                    "Next", callback_data=f"stuani_2_{id_}_{rp}_{qry}_{auth}_{duser}"
-                )
-            ])
-        else:
-            btns.append([
-                InlineKeyboardButton(
-                    "Prev",
-                    callback_data=f"stuani_{int(page)-1}_{id_}_{rp}_{qry}_{auth}_{duser}"
-                ),
-                InlineKeyboardButton(
-                    "Next",
-                    callback_data=f"stuani_{int(page)+1}_{id_}_{rp}_{qry}_{auth}_{duser}"
-                )
-            ])
+        btns.append([
+            InlineKeyboardButton(
+                "Prev",
+                callback_data=f"stuani_{int(page)-1}_{id_}_{rp}_{qry}_{auth}_{duser}"
+            ),
+            InlineKeyboardButton(
+                "Next",
+                callback_data=f"stuani_{int(page)+1}_{id_}_{rp}_{qry}_{auth}_{duser}"
+            )
+        ])
     btns.append([
         InlineKeyboardButton(
             "Back", callback_data=f"pgstudio_{rp}_{qry}_{auth}_{duser}"
@@ -874,16 +874,17 @@ async def get_studio_animes(id_, page, qry, rp, user, duser = None, auth: bool =
 async def get_all_tags(text: str = None):
     vars_ = {}
     result = await return_json_senpai(GET_TAGS, vars_, auth=False, user=None)
-    msg = "**Tags List:**\n\n`"
-    kek = []
-    for i in result['data']['MediaTagCollection']:
-        if text is not None and 'nsfw' in text:
-            if str(i['isAdult'])!='False':
-                kek.append(i['name'])
-        else:
-            if str(i['isAdult'])=='False':
-                kek.append(i['name'])
-    msg += ", ".join(kek)
+    kek = [
+        i['name']
+        for i in result['data']['MediaTagCollection']
+        if text is not None
+        and 'nsfw' in text
+        and str(i['isAdult']) != 'False'
+        or (text is None or 'nsfw' not in text)
+        and str(i['isAdult']) == 'False'
+    ]
+
+    msg = "**Tags List:**\n\n`" + ", ".join(kek)
     msg += "`"
     return msg
 
@@ -945,7 +946,7 @@ async def get_recommendations(id_):
     for i in data:
         ii = i['node']['mediaRecommendation']
         rc_ls.append([ii['title']['romaji'], ii['id'], ii['siteUrl']])
-    if rc_ls == []:
+    if not rc_ls:
         return "No Recommendations available related to given anime!!!"
     outstr = "Recommended animes:\n\n"
     for i in rc_ls:
@@ -972,9 +973,9 @@ async def get_top_animes(gnr: str, page, user):
         msg = f"Top animes for tag `{gnr.capitalize()}`:\n\n"
         result = await return_json_senpai(query, vars_, auth=False, user=user)
         if len(result['data']['Page']['media'])==0:
-            return [f"No results Found"]
+            return ["No results Found"]
         nsls = await get_all_tags('nsfw')
-        nsfw = True if gnr.lower() in nsls.lower() else False
+        nsfw = gnr.lower() in nsls.lower()
     data = result["data"]["Page"]
     for i in data['media']:
         msg += f"⚬ `{i['title']['romaji']}`\n"
@@ -1006,7 +1007,7 @@ async def get_top_animes(gnr: str, page, user):
                 callback_data=f"topanimu_{gnr}_{int(page)+1}_{user}"
             )
         ])
-    return [msg, nsfw], InlineKeyboardMarkup(btn) if len(btn)!=0 else ""
+    return [msg, nsfw], InlineKeyboardMarkup(btn) if btn else ""
 
 
 async def get_user_favourites(id_, user, req, page, sighs, duser = None):
@@ -1101,9 +1102,9 @@ async def get_featured_in_lists(
         LS_INFO_QUERY, vars_, auth=auth, user=user
     )
     data = result["data"]["Character"]["media"]["nodes"]
+    out_ = []
     if req == "ANI":
         out = "ANIMES:\n\n"
-        out_ = []
         for ani in data:
             k = ani["title"]["english"] or ani["title"]["romaji"]
             kk = ani["type"]
@@ -1111,7 +1112,6 @@ async def get_featured_in_lists(
                 out_.append(f"• __{k}__\n")
     else:
         out = "MANGAS:\n\n"
-        out_ = []
         for ani in data:
             k = ani["title"]["english"] or ani["title"]["romaji"]
             kk = ani["type"]
@@ -1121,9 +1121,9 @@ async def get_featured_in_lists(
     for _ in range(15*page):
         out_.pop(0)
     out_ = "".join(out_[:15])
-    return (
-        [out+out_, total] if len(out_) != 0 else False
-    ), result["data"]["Character"]["image"]["large"]
+    return [out + out_, total] if out_ != "" else False, result["data"][
+        "Character"
+    ]["image"]["large"]
 
 
 async def get_additional_info(
@@ -1164,22 +1164,24 @@ async def get_additional_info(
             )
         return (pic if ctgry == "ANI" else data["image"]["large"]), synopsis
     elif req == "char":
-        charlist = []
-        for char in data["characters"]['edges']:
-            charlist.append(
-                f"• `{char['node']['name']['full']}` ({char['role']})"
-            )
+        charlist = [
+            f"• `{char['node']['name']['full']}` ({char['role']})"
+            for char in data["characters"]['edges']
+        ]
+
         chrctrs = ("\n").join(charlist)
-        charls = f"{chrctrs}" if len(charlist) != 0 else ""
+        charls = f"{chrctrs}" if charlist else ""
         return pic, charls, data["characters"]['pageInfo']
     else:
         prqlsql = data.get("relations").get("edges")
-        ps = ""
-        for i in prqlsql:
-            ps += (
+        ps = "".join(
+            (
                 f'• {i["node"]["title"]["romaji"]} '
-                +f'({i["node"]["type"]}) `{i["relationType"]}`\n'
+                + f'({i["node"]["type"]}) `{i["relationType"]}`\n'
             )
+            for i in prqlsql
+        )
+
         return pic, ps
 
 

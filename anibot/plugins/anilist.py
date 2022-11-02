@@ -106,27 +106,22 @@ async def anime_cmd(client: Client, message: Message, mdata: dict):
     except KeyError:
         user = mdata['sender_chat']['id']
         ufc = await gcc(user)
-        if ufc is not None:
-            auser = ufc
-        else:
-            auser = user
+        auser = ufc if ufc is not None else user
     find_gc = await DC.find_one({'_id': gid})
     if find_gc is not None and 'anime' in find_gc['cmd_list'].split():
         return
-    if len(text) == 1:
-        k = await message.reply_text(
-"""Please give a query to search about
+        if len(text) == 1:
+            k = await message.reply_text(
+    """Please give a query to search about
 example: /anime Ao Haru Ride"""
-        )
-        await asyncio.sleep(5)
-        return await k.delete()
+            )
+            await asyncio.sleep(5)
+            return await k.delete()
     query = text[1]
-    auth = False
     vars_ = {"search": query}
     if query.isdigit():
         vars_ = {"id": int(query)}
-    if (await AUTH_USERS.find_one({"id": auser})):
-        auth = True
+    auth = bool((await AUTH_USERS.find_one({"id": auser})))
     result = await get_anime(
         vars_,
         user=auser,
@@ -176,26 +171,21 @@ async def manga_cmd(client: Client, message: Message, mdata: dict):
     except KeyError:
         user = mdata['sender_chat']['id']
         ufc = await gcc(user)
-        if ufc is not None:
-            auser = ufc
-        else:
-            auser = user
+        auser = ufc if ufc is not None else user
     find_gc = await DC.find_one({'_id': gid})
     if find_gc is not None and 'manga' in find_gc['cmd_list'].split():
         return
-    if len(text) == 1:
-        k = await message.reply_text(
-"""Please give a query to search about
+        if len(text) == 1:
+            k = await message.reply_text(
+    """Please give a query to search about
 example: /manga The teasing master Takagi san"""
-        )
-        await asyncio.sleep(5)
-        return await k.delete()
+            )
+            await asyncio.sleep(5)
+            return await k.delete()
     query = text[1]
     qdb = rand_key()
     MANGA_DB[qdb] = query
-    auth = False
-    if (await AUTH_USERS.find_one({"id": auser})):
-        auth = True
+    auth = bool((await AUTH_USERS.find_one({"id": auser})))
     result = await get_manga(
         qdb, 1, auth=auth, user=auser, cid=gid if gid != user else None
     )
@@ -256,10 +246,7 @@ async def character_cmd(client: Client, message: Message, mdata: dict):
     except KeyError:
         user = mdata['sender_chat']['id']
         ufc = await gcc(user)
-        if ufc is not None:
-            auser = ufc
-        else:
-            auser = user
+        auser = ufc if ufc is not None else user
     find_gc = await DC.find_one({'_id': gid})
     if find_gc is not None and 'character' in find_gc['cmd_list'].split():
         return
@@ -272,9 +259,7 @@ async def character_cmd(client: Client, message: Message, mdata: dict):
     query = text[1]
     qdb = rand_key()
     CHAR_DB[qdb] = query
-    auth = False
-    if (await AUTH_USERS.find_one({"id": auser})):
-        auth = True
+    auth = bool((await AUTH_USERS.find_one({"id": auser})))
     result = await get_character(qdb, 1, auth=auth, user=auser)
     if len(result) == 1:
         k = await message.reply_text(result[0])
@@ -314,10 +299,7 @@ async def anilist_cmd(client: Client, message: Message, mdata: dict):
     except KeyError:
         user = mdata['sender_chat']['id']
         ufc = await gcc(user)
-        if ufc is not None:
-            auser = ufc
-        else:
-            auser = user
+        auser = ufc if ufc is not None else user
     find_gc = await DC.find_one({'_id': gid})
     if find_gc is not None and 'anilist' in find_gc['cmd_list'].split():
         return
@@ -330,9 +312,7 @@ async def anilist_cmd(client: Client, message: Message, mdata: dict):
     query = text[1]
     qdb = rand_key()
     ANIME_DB[qdb] = query
-    auth = False
-    if (await AUTH_USERS.find_one({"id": auser})):
-        auth = True
+    auth = bool((await AUTH_USERS.find_one({"id": auser})))
     result = await get_anilist(
         qdb, 1, auth=auth, user=auser, cid=gid if gid != user else None
     )
@@ -392,13 +372,13 @@ async def flex_cmd(client: Client, message: Message, mdata: dict):
     if "user" in query[0]:
         if find_gc is not None and 'user' in find_gc['cmd_list'].split():
             return
-        if not len(query) == 2:
-            k = await message.reply_text(
-"""Please give an anilist username to search about
+        if len(query) != 2:
+                        k = await message.reply_text(
+            """Please give an anilist username to search about
 example: /user Lostb053"""
-)
-            await asyncio.sleep(5)
-            return await k.delete()
+            )
+                        await asyncio.sleep(5)
+                        return await k.delete()
         else:
             qry = {"search": query[1]}
     if find_gc is not None and 'flex' in find_gc['cmd_list'].split():
@@ -409,23 +389,20 @@ example: /user Lostb053"""
     except KeyError:
         user = mdata['sender_chat']['id']
         ufc = await gcc(user)
-        if ufc is not None:
-            auser = ufc
-        else:
-            auser = user
-    if not "user" in query[0] and not (
+        auser = ufc if ufc is not None else user
+    if "user" not in query[0] and not (
         await AUTH_USERS.find_one({"id": auser})
     ):
-        return await message.reply_text(
-"""Please connect your account first to use this cmd
+                return await message.reply_text(
+        """Please connect your account first to use this cmd
 Or connect your channel with /connect cmd if you are anonymous""",
-            reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton(
-                    "Auth",
-                    url=f"https://t.me/{BOT_NAME.replace('@', '')}/?start=auth"
-                )]]
-            )
-        )
+                    reply_markup=InlineKeyboardMarkup(
+                        [[InlineKeyboardButton(
+                            "Auth",
+                            url=f"https://t.me/{BOT_NAME.replace('@', '')}/?start=auth"
+                        )]]
+                    )
+                )
     result = await get_user(qry, query[0], auser, user)
     if len(result) == 1:
         k = await message.reply_text(result[0])
@@ -451,9 +428,7 @@ async def top_tags_cmd(client: Client, message: Message, mdata: dict):
     find_gc = await DC.find_one({'_id': gid})
     if find_gc is not None and 'top' in find_gc['cmd_list'].split():
         return
-    get_tag = "None"
-    if len(query) == 2:
-        get_tag = query[1]
+    get_tag = query[1] if len(query) == 2 else "None"
     try:
         user = mdata['from_user']['id']
     except KeyError:
@@ -489,19 +464,14 @@ async def studio_cmd(client: Client, message: Message, mdata: dict):
     query = text[1]
     qdb = rand_key()
     STUDIO_DB[qdb] = query
-    auth = False
     try:
         user = mdata['from_user']['id']
         auser = mdata['from_user']['id']
     except KeyError:
         user = mdata['sender_chat']['id']
         ufc = await gcc(user)
-        if ufc is not None:
-            auser = ufc
-        else:
-            auser = user
-    if (await AUTH_USERS.find_one({"id": auser})):
-        auth = True
+        auser = ufc if ufc is not None else user
+    auth = bool((await AUTH_USERS.find_one({"id": auser})))
     result = await get_studios(qdb, 1, user=auser, duser=user, auth=auth)
     if len(result)==1:
         x = await message.reply_text("No results found!!!")
@@ -524,28 +494,23 @@ async def airing_cmd(client: Client, message: Message, mdata: dict):
     find_gc = await DC.find_one({'_id': gid})
     if find_gc is not None and 'airing' in find_gc['cmd_list'].split():
         return
-    if len(text) == 1:
-        k = await message.reply_text(
-"""Please give a query to search about
+        if len(text) == 1:
+            k = await message.reply_text(
+    """Please give a query to search about
 example: /airing Fumetsu no Anata e""")
-        await asyncio.sleep(5)
-        return await k.delete()
+            await asyncio.sleep(5)
+            return await k.delete()
     query = text[1]
     qdb = rand_key()
     AIRING_DB[qdb] = query
-    auth = False
     try:
         user = mdata['from_user']['id']
         auser = mdata['from_user']['id']
     except KeyError:
         user = mdata['sender_chat']['id']
         ufc = await gcc(user)
-        if ufc is not None:
-            auser = ufc
-        else:
-            auser = user
-    if (await AUTH_USERS.find_one({"id": auser})):
-        auth = True
+        auser = ufc if ufc is not None else user
+    auth = bool((await AUTH_USERS.find_one({"id": auser})))
     result = await get_airing(qdb, 1, auth=auth, user=auser)
     if len(result) == 1:
         k = await message.reply_text(result[0])
@@ -582,11 +547,7 @@ example: /airing Fumetsu no Anata e""")
     except (WebpageMediaEmpty, WebpageCurlFailed):
         await clog('ANIBOT', coverImg, 'LINK', msg=message)
         await client.send_photo(gid, failed_pic, caption=out, reply_markup=btn)
-    update = True
-    for i in PIC_LS:
-        if coverImg in i:
-            update = False
-            break
+    update = all(coverImg not in i for i in PIC_LS)
     if update:
         PIC_LS.append(coverImg)
 
@@ -599,13 +560,16 @@ async def auth_link_cmd(client, message: Message, mdata: dict):
     except KeyError:
         user = 00000000
     if mdata['chat']['id'] == user:
-        text = "Click the below button to authorize yourself"
-        if not os.environ.get('ANILIST_REDIRECT_URL'):
-            text = """Follow the steps to complete Authorization:
+        text = (
+            "Click the below button to authorize yourself"
+            if os.environ.get('ANILIST_REDIRECT_URL')
+            else """Follow the steps to complete Authorization:
 1. Click the below button
 2. Authorize the app and copy the authorization code
 3. Send the copied code followed by the command /code'
 """
+        )
+
         base = "https://anilist.co/api/v2/oauth/authorize?client_id="
         ac = ANILIST_CLIENT
         aru = ANILIST_REDIRECT_URL
@@ -777,10 +741,7 @@ async def activity_cmd(client: Client, message: Message, mdata: dict):
     except KeyError:
         user = mdata['sender_chat']['id']
         ufc = await gcc(user)
-        if ufc is not None:
-            auser = ufc
-        else:
-            auser = user
+        auser = ufc if ufc is not None else user
     gid = mdata['chat']['id']
     find_gc = await DC.find_one({'_id': gid})
     if find_gc is not None and 'me' in (
@@ -791,15 +752,15 @@ async def activity_cmd(client: Client, message: Message, mdata: dict):
         find_gc['cmd_list'].split() and (message.text.split())[0]
     ):
         return
-    if not (await AUTH_USERS.find_one({"id": auser})):
-        return await message.reply_text(
-"""Please connect your account first to use this cmd
+        if not (await AUTH_USERS.find_one({"id": auser})):
+            return await message.reply_text(
+    """Please connect your account first to use this cmd
 Or connect your channel with /connect cmd if you are anonymous""",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
-                "Auth",
-                url=f"https://t.me/{BOT_NAME.replace('@', '')}/?start=auth"
-            )]])
-        )
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(
+                    "Auth",
+                    url=f"https://t.me/{BOT_NAME.replace('@', '')}/?start=auth"
+                )]])
+            )
     result = await get_user(None, "flex", user)
     query = result[0].split("/").pop().split("?")[0]
     result = await get_user_activity(int(query), user=int(user))
@@ -832,25 +793,22 @@ async def favourites_cmd(client: Client, message: Message, mdata: dict):
     except KeyError:
         user = mdata['sender_chat']['id']
         ufc = await gcc(user)
-        if ufc is not None:
-            auser = ufc
-        else:
-            auser = user
+        auser = ufc if ufc is not None else user
     gid = mdata['chat']['id']
     find_gc = await DC.find_one({'_id': gid})
     if find_gc is not None and 'favourites' in find_gc['cmd_list'].split():
         return
-    if not (await AUTH_USERS.find_one({"id": auser})):
-        return await message.reply_text(
-"""Please connect your account first to use this cmd
+        if not (await AUTH_USERS.find_one({"id": auser})):
+            return await message.reply_text(
+    """Please connect your account first to use this cmd
 Or connect your channel with /connect cmd if you are anonymous""",
-            reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton(
-                    "Auth",
-                    url=f"https://t.me/{BOT_NAME.replace('@', '')}/?start=auth"
-                )]]
+                reply_markup=InlineKeyboardMarkup(
+                    [[InlineKeyboardButton(
+                        "Auth",
+                        url=f"https://t.me/{BOT_NAME.replace('@', '')}/?start=auth"
+                    )]]
+                )
             )
-        )
     result = await get_user(None, "flex", auser)
     query = result[0].split("/").pop().split("?")[0]
     btn = InlineKeyboardMarkup(
@@ -1016,10 +974,7 @@ async def page_btn(client: Client, cq: CallbackQuery, cdata: dict):
                 "Query Expired!!!\nCreate new one", show_alert=True
             )
     authbool = bool(1) if auth == "True" else bool(0)
-    if "-100" in str(user):
-        auser = await gcc(user)
-    else:
-        auser = user
+    auser = await gcc(user) if "-100" in str(user) else user
     if media in ["ANIME", "MANGA"]:
         result = await (
             get_anilist if media == "ANIME" else get_manga
@@ -1080,9 +1035,8 @@ This material is marked 18+ and not allowed in this group"""
             reply_markup=button
         )
     await cq.answer()
-    if media != "CHARACTER":
-        if pic not in PIC_LS:
-            PIC_LS.append(pic)
+    if media != "CHARACTER" and pic not in PIC_LS:
+        PIC_LS.append(pic)
 
 
 @anibot.on_callback_query(filters.regex(pattern=r"pgstudio_(.*)"))
@@ -1096,10 +1050,7 @@ async def studio_pg_btn(client: Client, cq: CallbackQuery, cdata: dict):
         return await cq.answer(
             "Query Expired!!!\nCreate new one", show_alert=True
         )
-    if "-100" in str(user):
-        auser = await gcc(user)
-    else:
-        auser = user
+    auser = await gcc(user) if "-100" in str(user) else user
     result = await get_studios(qry, page=page, user=auser, duser=user, auth=authbool)
     if len(result)==1:
         return await cq.answer("No more results available!!!", show_alert=True)
@@ -1112,10 +1063,7 @@ async def studio_pg_btn(client: Client, cq: CallbackQuery, cdata: dict):
 async def studio_ani_btn(client: Client, cq: CallbackQuery, cdata: dict):
     kek, page, id_, rp, qry, auth, user = cdata['data'].split("_")
     authbool = bool(1) if auth == "True" else bool(0)
-    if "-100" in str(user):
-        auser = await gcc(user)
-    else:
-        auser = user
+    auser = await gcc(user) if "-100" in str(user) else user
     result = await get_studio_animes(id_, page, qry, rp, auser, user, authbool)
     if len(result)==1:
         return await cq.answer("No results available!!!", show_alert=True)
@@ -1130,10 +1078,7 @@ async def anime_btn(client: Client, cq: CallbackQuery, cdata: dict):
     query = cdata['data'].split("_")
     idm = query[1]
     user = int(query.pop())
-    if "-100" in str(user):
-        auser = await gcc(user)
-    else:
-        auser = user
+    auser = await gcc(user) if "-100" in str(user) else user
     authbool = bool(1) if query[2] == "True" else bool(0)
     vars_ = {"id": int(idm)}
     cid = cdata["message"]["chat"]["id"]
@@ -1271,10 +1216,7 @@ async def flex_btn(client: Client, cq: CallbackQuery, cdata: dict):
     await cq.answer()
     query = cdata['data'].split("_")[1]
     user = cdata['data'].split("_").pop()
-    if "-100" in str(user):
-        auser = await gcc(user)
-    else:
-        auser = user
+    auser = await gcc(user) if "-100" in str(user) else user
     result = await get_user_activity(
         int(query), user=int(auser), duser=int(user)
     )
@@ -1348,10 +1290,7 @@ async def list_favourites_btn(client: Client, cq: CallbackQuery, cdata: dict):
 async def favourites_btn(client: Client, cq: CallbackQuery, cdata: dict):
     await cq.answer()
     q = cdata['data'].split("_")
-    if "-100" in str(q[5]):
-        auser = await gcc(q[5])
-    else:
-        auser = q[5]
+    auser = await gcc(q[5]) if "-100" in str(q[5]) else q[5]
     pic, msg, btns = await get_user_favourites(
         q[2], int(auser), q[1], q[3], q[4], duser=int(q[5])
     )
@@ -1371,10 +1310,7 @@ async def favourites_btn(client: Client, cq: CallbackQuery, cdata: dict):
 async def get_user_back_btn(client: Client, cq: CallbackQuery, cdata: dict):
     await cq.answer()
     query = cdata['data'].split("_")[1]
-    if "-100" in str(query):
-        auser = await gcc(query)
-    else:
-        auser = query
+    auser = await gcc(query) if "-100" in str(query) else query
     result = await get_user(
         None, "flex", user=int(auser), display_user=query
     )
@@ -1426,10 +1362,7 @@ async def toggle_favourites_btn(
             )
     idm = int(query[2])
     user = int(query.pop())
-    if "-100" in str(user):
-        auser = await gcc(user)
-    else:
-        auser = user
+    auser = await gcc(user) if "-100" in str(user) else user
     gid = cdata["message"]["chat"]["id"]
     rslt = await toggle_favourites(id_=idm, media=query[1], user=auser)
     if rslt == "ok":
@@ -1768,8 +1701,8 @@ async def additional_info_btn(client: Client, cq: CallbackQuery, cdata: dict):
             ]
         )
     if len(result) > 1000:
-        result = result[:940] + "..."
-        if spoiler is False:
+        result = f"{result[:940]}..."
+        if not spoiler:
             result += "\n\nFor more info click below given button"
             button.append([
                 InlineKeyboardButton(
@@ -1841,9 +1774,9 @@ async def featured_in_btn(client: Client, cq: CallbackQuery, cdata: dict):
     if result[0] is False:
         result = await get_featured_in_lists(int(idm), "MAN")
         req = None
-        if result[0] is False:
-            await cq.answer("No Data Available!!!", show_alert=True)
-            return
+    if result[0] is False:
+        await cq.answer("No Data Available!!!", show_alert=True)
+        return
     [msg, total], pic = result
     button = []
     totalpg, kek = divmod(total, 15)
@@ -1920,14 +1853,23 @@ async def featured_in_switch_btn(
                     callback_data=nex
                 )
             ])
-    button.append([InlineKeyboardButton(
-        text=f"{bt}",
-        callback_data=f"{reqb}_{idm}_0_{qry}_{pg}_{auth}_{user}"
-    )])
-    button.append([InlineKeyboardButton(
-        text="Back",
-        callback_data=f"page_CHARACTER_{qry}_{pg}_{auth}_{user}"
-    )])
+    button.extend(
+        (
+            [
+                InlineKeyboardButton(
+                    text=f"{bt}",
+                    callback_data=f"{reqb}_{idm}_0_{qry}_{pg}_{auth}_{user}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="Back",
+                    callback_data=f"page_CHARACTER_{qry}_{pg}_{auth}_{user}",
+                )
+            ],
+        )
+    )
+
     try:
         await cq.edit_message_media(
             InputMediaPhoto(pic, caption=msg),
@@ -2003,11 +1945,10 @@ async def headlines_btn(client: Client, cq: CallbackQuery):
         if data:
             await collection.find_one_and_delete(data)
             src_status = f"{srcname}: OFF"
-            pin_msg = f"Auto Pin: OFF"
         else:
             await collection.insert_one({"_id": gid})
             src_status = f"{srcname}: ON"
-            pin_msg = f"Auto Pin: OFF"
+        pin_msg = "Auto Pin: OFF"
     if re.match(r"^(mal|lc)hdpin$", qry):
         if data:
             if pin:
@@ -2016,7 +1957,7 @@ async def headlines_btn(client: Client, cq: CallbackQuery):
                 pin_msg = f"Auto Pin: {switch}"
             else:
                 await collection.find_one_and_update(data, {"$set": {"pin": "ON"}}, upsert=True)
-                pin_msg = f"Auto Pin: ON"
+                pin_msg = "Auto Pin: ON"
         else:
             await cq.answer(f"Please enable {srcname} first!!!", show_alert=True)
     if "mal" in qry:
@@ -2106,12 +2047,11 @@ async def auto_unpin(client: Client, cq: CallbackQuery):
         setting = {"unpin": None}
     elif qry.isdigit():
         if int(qry)==0:
-            unpin = int(qry)
             setting = {"unpin": 0}
         else:
             now = round(time.time(), -2)
-            unpin = int(qry)
             setting = {"unpin": int(qry), "next_unpin": int(qry)+int(now)}
+        unpin = int(qry)
     if setting:
         await collection.find_one_and_update(data, {"$set": setting})
     btn = []
@@ -2131,7 +2071,7 @@ async def auto_unpin(client: Client, cq: CallbackQuery):
         if unpin == 0:
             unpindata = "after Next Feed"
         else:
-            unpindata = "after "+list(TIMES.keys())[list(TIMES.values()).index(unpin)]
+            unpindata = f"after {list(TIMES.keys())[list(TIMES.values()).index(unpin)]}"
     else:
         unpindata = "OFF"
     await cq.edit_message_text(

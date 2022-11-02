@@ -40,19 +40,18 @@ async def get_watch_order(client: Client, message: Message, mdata: dict):
         user = mdata['sender_chat']['id']
     data = get_wols(x[1])
     msg = f"Found related animes for the query {x[1]}"
-    buttons = []
     if data == []:
         await client.send_message(gid, 'No results found!!!')
         return
-    for i in data:
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    str(i[1]),
-                    callback_data=f"watch_{i[0]}_{x[1]}_0_{user}"
-                )
-            ]
-        )
+    buttons = [
+        [
+            InlineKeyboardButton(
+                str(i[1]), callback_data=f"watch_{i[0]}_{x[1]}_0_{user}"
+            )
+        ]
+        for i in data
+    ]
+
     await client.send_message(
         gid, msg, reply_markup=InlineKeyboardMarkup(buttons)
     )
@@ -111,16 +110,15 @@ async def wls(client: anibot, cq: CallbackQuery, cdata: dict):
     kek, qry, user = cdata['data'].split("_")
     data = get_wols(qry)
     msg = f"Found related animes for the query {qry}"
-    buttons = []
-    for i in data:
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    str(i[1]),
-                    callback_data=f"watch_{i[0]}_{qry}_0_{user}"
-                )
-            ]
-        )
+    buttons = [
+        [
+            InlineKeyboardButton(
+                str(i[1]), callback_data=f"watch_{i[0]}_{qry}_0_{user}"
+            )
+        ]
+        for i in data
+    ]
+
     await cq.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(buttons))
 
 

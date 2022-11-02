@@ -177,7 +177,7 @@ async def en_dis__able_cmd(client: Client, message: Message, mdata: dict):
             await asyncio.sleep(5)
             await x.delete()
             return
-        enable = False if not 'enable' in cmd[0] else True
+        enable = 'enable' in cmd[0]
         if set(cmd[1].split()).issubset(CMD):
             find_gc = await DC.find_one({'_id': gid})
             if find_gc is None:
@@ -188,9 +188,6 @@ async def en_dis__able_cmd(client: Client, message: Message, mdata: dict):
                     return
                 await DC.insert_one({'_id': gid, 'cmd_list': cmd[1]})
                 x = await message.reply_text("Command disabled!!!")
-                await asyncio.sleep(5)
-                await x.delete()
-                return
             else:
                 ocls: str = find_gc['cmd_list']
                 if set(cmd[1].split()).issubset(ocls.split()):
@@ -212,28 +209,25 @@ async def en_dis__able_cmd(client: Client, message: Message, mdata: dict):
                         await asyncio.sleep(5)
                         await x.delete()
                         return
+                elif enable:
+                    x = await message.reply_text(
+                        'Command already enabled!!!'
+                    )
+                    await asyncio.sleep(5)
+                    await x.delete()
+                    return
                 else:
-                    if enable:
-                        x = await message.reply_text(
-                            'Command already enabled!!!'
-                        )
-                        await asyncio.sleep(5)
-                        await x.delete()
-                        return
-                    else:
-                        lsncls = []
-                        prencls = (ocls+' '+cmd[1]).replace('  ', ' ')
-                        for i in prencls.split():
-                            if i not in lsncls:
-                                lsncls.append(i)
-                        ncls = " ".join(lsncls)
+                    prencls = f'{ocls} {cmd[1]}'.replace('  ', ' ')
+                    lsncls = []
+                    for i in prencls.split():
+                        if i not in lsncls:
+                            lsncls.append(i)
+                    ncls = " ".join(lsncls)
                 await DC.update_one({'_id': gid}, {'$set': {'cmd_list': ncls}})
-                x = await message.reply_text(
-                    f"Command {'dis' if enable is False else 'en'}abled!!!"
-                )
-                await asyncio.sleep(5)
-                await x.delete()
-                return
+                x = await message.reply_text(f"Command {'en' if enable else 'dis'}abled!!!")
+            await asyncio.sleep(5)
+            await x.delete()
+            return
         else:
             await message.reply_text("Hee, is that a command?!")
 
@@ -352,20 +346,20 @@ async def start_(client: Client, message: Message, mdata: dict):
         return
     bot = await client.get_me()
     if gid==user:
-        if not (user in OWNER) and not (await USERS.find_one({"id": user})):
-            try:
-                usertitle = mdata['from_user']['username']
-            except KeyError:
-                usertitle = mdata['from_user']['first_name']
-            await USERS.insert_one({"id": user, "user": usertitle})
-            await clog(
-                "ANIBOT",
-f"""New User started bot
+        if user not in OWNER and not (await USERS.find_one({"id": user})):
+                        try:
+                            usertitle = mdata['from_user']['username']
+                        except KeyError:
+                            usertitle = mdata['from_user']['first_name']
+                        await USERS.insert_one({"id": user, "user": usertitle})
+                        await clog(
+                            "ANIBOT",
+            f"""New User started bot
 
 <a url="tg://user?id={user}">{usertitle}</a>
 ID: `{user}`""",
-                "NEW_USER"
-            )
+                            "NEW_USER"
+                        )
         if len(mdata['text'].split())!=1:
             deep_cmd = mdata['text'].split()[1]
             if deep_cmd=="help":
@@ -401,9 +395,7 @@ ID: `{user}`""",
                     )
                 return
             if deep_cmd_list[0]=="anime":
-                auth = False
-                if (await AUTH_USERS.find_one({"id": user})):
-                    auth = True
+                auth = bool((await AUTH_USERS.find_one({"id": user})))
                 result = await get_anime(
                     {"id": int(deep_cmd_list[1])},
                     user=user,
@@ -439,14 +431,24 @@ ID: `{user}`""",
         await client.send_message(
             gid,
             text=(
-                f"Kon'nichiwa!!!\n"
-                +f"I'm {bot.first_name} bot and I can help you get info on "
-                +f"Animes, Mangas, Characters, Airings, Schedules, Watch "
-                +f"Orders of Animes, etc."
-                +f"\n\nFor more info send /help in here."
-                +f"If you wish to use me in a group start me by "
-                +f"/start{BOT_NAME} command after adding me in the group.")
+                (
+                    (
+                        (
+                            (
+                                f"Kon'nichiwa!!!\n"
+                                + f"I'm {bot.first_name} bot and I can help you get info on "
+                                + "Animes, Mangas, Characters, Airings, Schedules, Watch "
+                            )
+                            + "Orders of Animes, etc."
+                        )
+                        + f"\n\nFor more info send /help in here."
+                    )
+                    + "If you wish to use me in a group start me by "
+                )
+                + f"/start{BOT_NAME} command after adding me in the group."
+            ),
         )
+
     else:
         if not await (GROUPS.find_one({"_id": gid})):
             try:
@@ -502,22 +504,21 @@ Use /feedback cmd to contact bot owner'''
 
 Apart from above shown cmds"""
         )
+    elif gid==id_:
+        await client.send_message(gid, text=text, reply_markup=buttons)
     else:
-        if gid==id_:
-            await client.send_message(gid, text=text, reply_markup=buttons)
-        else:
-            await client.send_message(
-                gid,
-                text="Click below button for bot help",
-                reply_markup=InlineKeyboardMarkup(
-                    [[
-                        InlineKeyboardButton(
-                            "Help",
-                            url=f"https://t.me/{bot_us}/?start=help"
-                        )
-                    ]]
-                )
+        await client.send_message(
+            gid,
+            text="Click below button for bot help",
+            reply_markup=InlineKeyboardMarkup(
+                [[
+                    InlineKeyboardButton(
+                        "Help",
+                        url=f"https://t.me/{bot_us}/?start=help"
+                    )
+                ]]
             )
+        )
 
 
 @anibot.on_message(
@@ -565,7 +566,7 @@ async def connect_(client: Client, message: Message, mdata: dict):
                     +"\nExample: /connect -100xxxxxxxxx"
                 )
             )
-        if not "-100" in channel:
+        if "-100" not in channel:
             return await client.send_message(
                 gid, text="Please enter the full channel ID!!!"
             )
@@ -728,8 +729,7 @@ async def feed_(client: Client, message: Message, mdata: dict):
     owner = (await client.get_users(OWNER[0])).username
     await client.send_message(
         mdata['chat']['id'],
-        f"For issues or queries please contact "
-        +f"@{owner} or join @hanabi_support"
+        f"For issues or queries please contact @{owner} or join @hanabi_support",
     )
 
 ###### credits to @NotThatMF on tg since he gave me the code for it ######
@@ -744,9 +744,7 @@ async def feed_(client: Client, message: Message, mdata: dict):
 async def eval_(client: Client, message: Message, mdata: dict):
     status_message = await message.reply_text("Processing ...")
     cmd = message.text.split(" ", maxsplit=1)[1]
-    reply_to_ = message
-    if message.reply_to_message:
-        reply_to_ = message.reply_to_message
+    reply_to_ = message.reply_to_message or message
     old_stderr = sys.stderr
     old_stdout = sys.stdout
     redirected_output = sys.stdout = io.StringIO()
@@ -826,7 +824,7 @@ async def terminal(client: Client, message: Message, mdata: dict):
                     ),
                     parse_mode=enums.ParseMode.MARKDOWN,
                 )
-            output += "**{}**\n".format(code)
+            output += f"**{code}**\n"
             output += process.stdout.read()[:-1].decode("utf-8")
             output += "\n"
     else:
@@ -843,9 +841,10 @@ async def terminal(client: Client, message: Message, mdata: dict):
                 etype=exc_type, value=exc_obj, tb=exc_tb
             )
             await message.reply_text(
-                """**Error:**\n```{}```""".format("".join(errors)),
-                parse_mode=enums.ParseMode.MARKDOWN
+                f"""**Error:**\n```{"".join(errors)}```""",
+                parse_mode=enums.ParseMode.MARKDOWN,
             )
+
             return
         output = process.stdout.read()[:-1].decode("utf-8")
     if str(output) == "\n":

@@ -119,11 +119,10 @@ async def trace_bek(client: anibot, message: Message, mdata: dict):
             )
         ])
         try:
-            await (
-                message.reply_video if nsfw is False else message.reply_photo
-            )(
+            await (message.reply_photo if nsfw else message.reply_video)(
                 msg, caption=caption, reply_markup=InlineKeyboardMarkup(button)
             )
+
         except Exception:
             e = err()
             await x.edit_text(
