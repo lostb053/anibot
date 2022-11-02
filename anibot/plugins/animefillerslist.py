@@ -1,22 +1,42 @@
 from pyrogram import filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery, Message
+from pyrogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    CallbackQuery,
+    Message
+)
 from ..utils.data_parser import search_filler, parse_filler
-from ..utils.helper import check_user, control_user, rand_key
+from ..utils.helper import (
+    check_user,
+    control_user,
+    rand_key,
+    get_user_from_channel as gcc
+)
 from ..utils.db import get_collection
 from .. import BOT_NAME, TRIGGERS as trg, anibot
 
 FILLERS = {}
 DC = get_collection('DISABLED_CMDS')
 
-@anibot.on_message(filters.command(['fillers', f"fillers{BOT_NAME}"], prefixes=trg))
+
+@anibot.on_message(
+    filters.command(['fillers', f"fillers{BOT_NAME}"], prefixes=trg)
+)
 @control_user
 async def fillers_cmd(client: anibot, message: Message, mdata: dict):
     find_gc = await DC.find_one({'_id': mdata['chat']['id']})
+    try:
+        user = mdata['from_user']['id']
+    except KeyError:
+        user = mdata['sender_chat']['id']
     if find_gc is not None and 'watch' in find_gc['cmd_list'].split():
         return
     qry = mdata['text'].split(" ", 1)
     if len(qry)==1:
-        return await message.reply_text("Give some anime name to search fillers for\nexample: /fillers Detective Conan")
+        return await message.reply_text(
+"""Give some anime name to search fillers for
+example: /fillers Detective Conan"""
+        )
     k = search_filler(qry[1])
     if k == {}:
         await message.reply_text("No fillers found for the given anime...")
@@ -40,8 +60,13 @@ async def fillers_cmd(client: anibot, message: Message, mdata: dict):
     for i in list_:
         fl_js = rand_key()
         FILLERS[fl_js] = [k.get(i), i]
-        button.append([InlineKeyboardButton(i, callback_data=f"fill_{fl_js}_{mdata['from_user']['id']}")])
-    await message.reply_text("Pick anime you want to see fillers list for:", reply_markup=InlineKeyboardMarkup(button))
+        button.append(
+            [InlineKeyboardButton(i, callback_data=f"fill_{fl_js}_{user}")]
+        )
+    await message.reply_text(
+        "Pick anime you want to see fillers list for:",
+        reply_markup=InlineKeyboardMarkup(button)
+    )
 
 
 @anibot.on_callback_query(filters.regex(pattern=r"fill_(.*)"))
@@ -50,7 +75,8 @@ async def filler_btn(client: anibot, cq: CallbackQuery, cdata: dict):
     kek, req, user = cdata['data'].split("_")
     result = parse_filler((FILLERS.get(req))[0])
     msg = ""
-    msg += f"**Fillers for anime** `{(FILLERS.get(req))[1]}`\n\n**Manga Canon episodes:**\n"
+    msg += f"**Fillers for anime** `{(FILLERS.get(req))[1]}`"
+    msg += "\n\n**Manga Canon episodes:**\n"
     msg += str(result.get("total_ep"))
     msg += "\n\n**Mixed/Canon fillers:**\n"
     msg += str(result.get("mixed_ep"))
@@ -60,3 +86,10 @@ async def filler_btn(client: anibot, cq: CallbackQuery, cdata: dict):
         msg += "\n\n**Anime Canon episodes:**\n"
         msg += str(result.get("ac_ep"))
     await cq.edit_message_text(msg)
+
+
+@anibot.on_message(
+    filters.command(['fillers', f"fillers{BOT_NAME}"], prefixes=trg)
+)
+async def fillers_cmd(client: anibot, message: Message):
+    await fillers_cmd(client, message)
