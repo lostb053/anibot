@@ -3,6 +3,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * Airing
 * Manga
 * Character
+* Studio
 * Scheduled
 * Top animes
 * Favourites
@@ -13,10 +14,12 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * Anime fillers from [animefillerslist](https://www.animefillerlist.com)
 * Anime Airing notifications from [LiveChart](https://livechart.me)
 * Anime Headlines from [LiveChart](https://livechart.me)
+* Anime Headlines from [MyAnimeList](https://myanimelist.net)
 * Anime release notifications for [Crunchyroll](https://crunchyroll.com)
 * Anime release notifications for [Subsplease](https://subsplease.org)
 * Anime Reverse Search Powered by [tracemoepy](https://github.com/dragsama/tracemoepy)
 * Watch Order from [Chiaki](https://chiaki.site/) using [web api](https://chiaki.vercel.app)
+* Supports custom UI to be set for all results shown by /anime and /anilist in a group
 <h3>Also can add to grps and enable sfw lock to prevent members from looking up hentai and 18+ rated stuff<br>Also includes command disabling<br><b>With new update you can now change UI for anime/anilist/manga results in your group</b></h3>
 
 <img src='https://img.shields.io/github/repo-size/lostb053/anibot?style=flat-square'>  <img src='https://img.shields.io/github/license/lostb053/anibot?style=flat-square'>  <img src='https://img.shields.io/github/languages/top/lostb053/anibot?style=flat-square'>  [![CodeFactor](https://www.codefactor.io/repository/github/lostb053/anibot/badge)](https://www.codefactor.io/repository/github/lostb053/anibot)
@@ -40,6 +43,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
  /character - Fetches info on multiple possible characters related to query
  /manga - Fetches info on multiple possible mangas related to query
  /airing - Fetches info on airing data for anime
+ /studio - Fetches info on multiple possible studios related to query
  /flex - Fetches anilist info of an authorised user
  /user - Fetches anilist info as per query
  /schedule - Fetches scheduled animes
@@ -47,7 +51,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
  /browse - get popular, trending or upcoming animes
  /quote - get random quotes
  /logout - removes authorization
- /settings - To toggle nsfw lock and airing notifications in groups
+ /settings - To toggle nsfw lock and airing notifications and other settings in groups
  /top - to retrieve top animes for a genre or tag
  /reverse - Reverse search powered by tracemoepy
  /watch - Fetches watch order for anime series
@@ -60,6 +64,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
  /favourites - Get Anilist favourites
  /gettags - Get list of available Tags
  /getgenres - Get list of available Genres
+ /connect - Helps connect Public channel, to use bot as Channel in group
 ```
 
 
