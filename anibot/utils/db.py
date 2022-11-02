@@ -1,5 +1,6 @@
 # below code is taken from USERGE-X repo
-# all credits to the respective author (dunno who wrote it will find later n update)
+# all credits to the respective author (dunno who wrote it will find later
+# n update)
 
 
 __all__ = ['get_collection']
