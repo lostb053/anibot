@@ -20,7 +20,7 @@ Telegram Bot Repo Capable of fetching the following Info via Anilist API inspire
 * Anime Reverse Search Powered by [tracemoepy](https://github.com/dragsama/tracemoepy)
 * Watch Order from [Chiaki](https://chiaki.site/) using [web api](https://chiaki.vercel.app)
 * Supports custom UI to be set for all results shown by /anime and /anilist in a group
-<h3>Also can add to grps and enable sfw lock to prevent members from looking up hentai and 18+ rated stuff<br>Also includes command disabling<br><b>With new update you can now change UI for anime/anilist/manga results in your group</b></h3>
+<h3>Also can add to groups and enable sfw lock to prevent members from looking up hentai and 18+ rated stuff<br>Also includes command disabling<br><b>With new update you can now change UI for anime/anilist/manga results in your group</b></h3>
 
 <img src='https://img.shields.io/github/repo-size/lostb053/anibot?style=flat-square'>  <img src='https://img.shields.io/github/license/lostb053/anibot?style=flat-square'>  <img src='https://img.shields.io/github/languages/top/lostb053/anibot?style=flat-square'>  [![CodeFactor](https://www.codefactor.io/repository/github/lostb053/anibot/badge)](https://www.codefactor.io/repository/github/lostb053/anibot)
 
